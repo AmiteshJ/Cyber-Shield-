@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import apiRoutes from './routes/api.js';
 import cveRoutes from './routes/cve.js'
 import policyRoutes from './routes/policy.js';
+import chatRoutes from './routes/chat.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -21,15 +22,19 @@ const httpServer = createServer(app);
 // Setup Socket.IO for real-time dashboard updates
 const io = new Server(httpServer, {
   cors: {
-    origin: '*', // Allow all origins for the hackathon
+    origin: process.env.FRONTEND_URL,
     methods: ['GET', 'POST']
   }
 });
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true
+}));
 app.use(express.json());
 app.use('/api', cveRoutes);
 app.use('/api', policyRoutes);
+app.use('/api', chatRoutes);
 
 // Pass io instance to routes via middleware
 app.use((req, res, next) => {
@@ -39,6 +44,9 @@ app.use((req, res, next) => {
 
 // Use API routes
 app.use('/api', apiRoutes);
+
+// Health check route
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // Socket.io connection logic
 io.on('connection', (socket) => {

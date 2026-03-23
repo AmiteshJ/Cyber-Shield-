@@ -5,7 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
-const BACKEND_URL = 'http://127.0.0.1:5000';
+const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
 
 const getRelativeTime = (dateString) => {
   const date = new Date(dateString + (dateString.includes('Z') ? '' : 'Z'));
@@ -381,7 +381,7 @@ const Dashboard = () => {
     const interval = setInterval(fetchData, 10000);
     const timeInterval = setInterval(() => setCurrentTime(Date.now()), 1000);
 
-    const socket = io(BACKEND_URL);
+    const socket = io(BACKEND_URL, { transports: ["websocket"] });
     socket.on('new_activity', (newActivity) => {
       setActivityFeed(prev => [newActivity, ...prev].slice(0, 15));
     });

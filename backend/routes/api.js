@@ -8,7 +8,10 @@ const router = express.Router();
 
 // Setup Multer for memory storage (we will buffer it to VirusTotal)
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 50 * 1024 * 1024 } 
+});
 
 const logActivity = async (io, type, text) => {
   try {
@@ -175,7 +178,7 @@ router.post('/scan', upload.single('file'), async (req, res) => {
 // 1.5 PHISHING / DEEPFAKE ANALYZER API
 router.post('/phish/analyze', upload.single('file'), async (req, res) => {
   try {
-    const groqApiKey = process.env.VITE_GROQ_API_KEY;
+    const groqApiKey = process.env.GROQ_API_KEY;
     if (!groqApiKey) return res.status(500).json({ error: 'Groq API key missing' });
 
     // TEXT/RAW MESSAGE ANALYSIS

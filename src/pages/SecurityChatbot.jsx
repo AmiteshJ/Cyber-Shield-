@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Paperclip, Send, Trash2, Download, Zap } from 'lucide-react';
 
 /* ── ALL ORIGINAL CONSTANTS (unchanged) ── */
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
+const CHAT_API_URL = `${API_BASE_URL}/api/chat`;
 
 const SYSTEM_PROMPT = `You are NEXUS, an elite AI security copilot embedded in CyberShield — 
 an advanced cybersecurity operations platform. You specialize in:
@@ -317,9 +317,9 @@ const SecurityChatbot = () => {
         .filter((_, i) => i !== 0)
         .map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
 
-      const response = await fetch(GROQ_API_URL, {
+      const response = await fetch(CHAT_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_API_KEY}` },
+        headers: { 'Content-Type': 'application/json' },
         signal: abortControllerRef.current.signal,
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
@@ -367,7 +367,7 @@ const SecurityChatbot = () => {
       setError(err.message);
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: `[ERROR] UPLINK FAILED: ${err.message}\n\nCheck your VITE_GROQ_API_KEY in .env`, timestamp: new Date(), isError: true },
+        { role: 'assistant', content: `[ERROR] UPLINK FAILED: ${err.message}\n\nCheck your GROQ_API_KEY in backend .env`, timestamp: new Date(), isError: true },
       ]);
     } finally {
       setIsStreaming(false);

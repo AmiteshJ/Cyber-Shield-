@@ -120,7 +120,7 @@ const PolicyChatbot = () => {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:5000/api/policy-status').then(r => {
+    axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'}/api/policy-status`).then(r => {
       if (r.data.data.loaded) { setPolicyLoaded(true); setPolicyInfo({ filename: r.data.data.filename }); }
     }).catch(() => { });
   }, []);
@@ -131,7 +131,7 @@ const PolicyChatbot = () => {
     setUploading(true); setError(null);
     try {
       const fd = new FormData(); fd.append('policy', file);
-      const res = await axios.post('http://127.0.0.1:5000/api/upload-policy', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'}/api/upload-policy`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       if (res.data.success) {
         setPolicyLoaded(true); setPolicyInfo(res.data.data);
         setMessages([{
@@ -154,7 +154,7 @@ const PolicyChatbot = () => {
     setMessages(p => [...p, { role: 'user', content: q }]);
     setLoading(true);
     try {
-      const res = await axios.post('http://127.0.0.1:5000/api/ask-policy', { question: q });
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'}/api/ask-policy`, { question: q });
       if (res.data.success) setMessages(p => [...p, { role: 'assistant', content: res.data.data.answer }]);
     } catch {
       setMessages(p => [...p, { role: 'assistant', content: '[ERR 503] Cannot reach backend. Check server.', isError: true }]);

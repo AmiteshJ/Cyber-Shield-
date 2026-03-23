@@ -249,7 +249,7 @@ const PhishingDetector = () => {
       if (file) formData.append('file', file);
       else formData.append('text', text);
 
-      const res = await fetch('http://127.0.0.1:5000/api/phish/analyze', { method: 'POST', body: formData });
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'}/api/phish/analyze`, { method: 'POST', body: formData });
       const data = await res.json();
 
       if (data.success && data.data) {
