@@ -1,455 +1,535 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Send, FileText, CheckCircle, Loader, Hash, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Upload, Send, FileText, CheckCircle, Loader, Hash, AlertTriangle, Shield, Search } from 'lucide-react';
 import axios from 'axios';
 
 /* ═══════════════════════════════════════════
-   CANVAS BACKGROUND  — grid + orbs + scan line
+   ANIMATED BACKGROUND — matches other pages
 ═══════════════════════════════════════════ */
-const ScanBackground = () => {
-  const ref = useRef(null);
+const PolicyBackground = () => {
+  const canvasRef = useRef(null);
+
   useEffect(() => {
-    const c = ref.current; if (!c) return;
-    const ctx = c.getContext('2d');
-    let id, t = 0;
-    const resize = () => { c.width = c.offsetWidth; c.height = c.offsetHeight; };
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animId, t = 0;
+
+    const resize = () => {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    };
     resize();
     window.addEventListener('resize', resize);
+
+    const nodes = Array.from({ length: 22 }, () => ({
+      x: Math.random(), y: Math.random(),
+      vx: (Math.random() - 0.5) * 0.00028,
+      vy: (Math.random() - 0.5) * 0.00028,
+      r: Math.random() * 1.2 + 0.4,
+      phase: Math.random() * Math.PI * 2,
+    }));
+
+    const orbs = [
+      { x: 0.1,  y: 0.2,  hue: 180, size: 0.3  },
+      { x: 0.88, y: 0.25, hue: 160, size: 0.22 },
+      { x: 0.5,  y: 0.85, hue: 200, size: 0.2  },
+      { x: 0.15, y: 0.75, hue: 170, size: 0.15 },
+    ];
+
     const draw = () => {
-      ctx.clearRect(0, 0, c.width, c.height);
-      ctx.fillStyle = '#020a06'; ctx.fillRect(0, 0, c.width, c.height);
-      ctx.strokeStyle = 'rgba(0,255,136,0.022)'; ctx.lineWidth = 0.5;
-      for (let x = 0; x < c.width; x += 44) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, c.height); ctx.stroke(); }
-      for (let y = 0; y < c.height; y += 44) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(c.width, y); ctx.stroke(); }
-      const g1 = ctx.createRadialGradient(0, 0, 0, 0, 0, c.width * 0.5);
-      g1.addColorStop(0, 'rgba(0,255,136,0.055)'); g1.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g1; ctx.fillRect(0, 0, c.width, c.height);
-      const g2 = ctx.createRadialGradient(c.width, c.height, 0, c.width, c.height, c.width * 0.38);
-      g2.addColorStop(0, 'rgba(0,200,100,0.04)'); g2.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g2; ctx.fillRect(0, 0, c.width, c.height);
-      const sy = ((t * 0.48) % (c.height + 80)) - 40;
-      const sg = ctx.createLinearGradient(0, sy - 40, 0, sy + 40);
-      sg.addColorStop(0, 'rgba(0,255,136,0)'); sg.addColorStop(0.5, 'rgba(0,255,136,0.032)'); sg.addColorStop(1, 'rgba(0,255,136,0)');
-      ctx.fillStyle = sg; ctx.fillRect(0, sy - 40, c.width, 80);
-      t++; id = requestAnimationFrame(draw);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#03060f';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      orbs.forEach((o, i) => {
+        const pulse = Math.sin(t * 0.007 + i * 1.3) * 0.3 + 0.7;
+        const r = o.size * Math.min(canvas.width, canvas.height) * pulse;
+        const gx = o.x * canvas.width, gy = o.y * canvas.height;
+        const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, r);
+        g.addColorStop(0, `hsla(${o.hue},100%,60%,0.07)`);
+        g.addColorStop(0.5, `hsla(${o.hue},100%,50%,0.03)`);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(gx, gy, r, 0, Math.PI * 2); ctx.fill();
+      });
+
+      ctx.strokeStyle = 'rgba(0,243,255,0.025)';
+      ctx.lineWidth = 0.5;
+      for (let x = 0; x < canvas.width; x += 50) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 50) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
+
+      const sy = ((t * 0.5) % (canvas.height + 60)) - 30;
+      const sg = ctx.createLinearGradient(0, sy - 30, 0, sy + 30);
+      sg.addColorStop(0, 'rgba(0,243,255,0)');
+      sg.addColorStop(0.5, 'rgba(0,243,255,0.04)');
+      sg.addColorStop(1, 'rgba(0,243,255,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(0, sy - 30, canvas.width, 60);
+
+      nodes.forEach(n => {
+        n.x += n.vx; n.y += n.vy;
+        if (n.x < 0 || n.x > 1) n.vx *= -1;
+        if (n.y < 0 || n.y > 1) n.vy *= -1;
+        const alpha = 0.12 + Math.sin(t * 0.02 + n.phase) * 0.08;
+        ctx.beginPath();
+        ctx.arc(n.x * canvas.width, n.y * canvas.height, n.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0,243,255,${alpha})`;
+        ctx.fill();
+      });
+
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = (nodes[i].x - nodes[j].x) * canvas.width;
+          const dy = (nodes[i].y - nodes[j].y) * canvas.height;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 140) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(0,243,255,${(1 - dist / 140) * 0.045})`;
+            ctx.lineWidth = 0.4;
+            ctx.moveTo(nodes[i].x * canvas.width, nodes[i].y * canvas.height);
+            ctx.lineTo(nodes[j].x * canvas.width, nodes[j].y * canvas.height);
+            ctx.stroke();
+          }
+        }
+      }
+
+      t++;
+      animId = requestAnimationFrame(draw);
     };
     draw();
-    return () => { cancelAnimationFrame(id); window.removeEventListener('resize', resize); };
+    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); };
   }, []);
-  return <canvas ref={ref} className="absolute inset-0 w-full h-full pointer-events-none z-0" />;
+
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-0" />;
 };
 
-/* ═══════════════════════════════════════════
-   REDACTION BARS  — decorative preview lines
-═══════════════════════════════════════════ */
-const RedactionLines = ({ loaded }) => (
-  <div className="flex flex-col gap-1.5 w-full">
-    {[100, 82, 93, 58, 87, 42, 75, 66].map((w, i) => (
-      <motion.div
-        key={i}
-        initial={{ scaleX: 0, opacity: 0 }}
-        animate={{ scaleX: 1, opacity: loaded ? 1 : 0.4 }}
-        transition={{ delay: 0.5 + i * 0.06, duration: 0.35, ease: 'easeOut' }}
-        style={{ transformOrigin: 'left' }}
-      >
-        <div className="rounded-sm" style={{
-          width: `${w}%`, height: 6,
-          background: loaded ? 'rgba(0,255,136,0.1)' : 'rgba(0,255,136,0.05)',
-          border: `1px solid ${loaded ? 'rgba(0,255,136,0.18)' : 'rgba(0,255,136,0.08)'}`,
-        }} />
-      </motion.div>
-    ))}
-  </div>
-);
-
-/* ═══════════════════════════════════════════
-   BLINKING CURSOR
-═══════════════════════════════════════════ */
-const Cursor = () => (
-  <motion.span
-    animate={{ opacity: [1, 0, 1] }}
-    transition={{ duration: 0.65, repeat: Infinity }}
-    style={{ display: 'inline-block', width: 7, height: 12, background: '#00ff88', verticalAlign: 'middle', marginLeft: 3 }}
-  />
-);
-
-/* ═══════════════════════════════════════════
-   DRAG-DROP HOOK
-═══════════════════════════════════════════ */
-const useDragDrop = (onFile) => {
-  const [over, setOver] = useState(false);
-  return {
-    over,
-    onDragOver: (e) => { e.preventDefault(); setOver(true); },
-    onDragLeave: () => setOver(false),
-    onDrop: (e) => { e.preventDefault(); setOver(false); onFile(e.dataTransfer.files[0]); },
-  };
-};
-
-/* ═══════════════════════════════════════════
-   QUICK QUERIES
-═══════════════════════════════════════════ */
 const QUERIES = [
-  { tag: 'PWD', q: 'What is the password policy?' },
-  { tag: 'USB', q: 'Can employees use personal USB drives?' },
-  { tag: 'INC', q: 'What should I do if I suspect a data breach?' },
-  { tag: 'RWK', q: 'What are the remote work security requirements?' },
+  { tag: 'PWD',  q: 'What is the password policy?' },
+  { tag: 'USB',  q: 'Can employees use personal USB drives?' },
+  { tag: 'INC',  q: 'What should I do if I suspect a data breach?' },
+  { tag: 'RWK',  q: 'What are the remote work security requirements?' },
   { tag: 'PRIV', q: 'What data is classified as confidential?' },
-  { tag: 'RPT', q: 'How should security incidents be reported?' },
+  { tag: 'RPT',  q: 'How should security incidents be reported?' },
 ];
 
-/* ═══════════════════════════════════════════
-   MAIN COMPONENT  — all original logic intact
-═══════════════════════════════════════════ */
 const PolicyChatbot = () => {
   const [policyLoaded, setPolicyLoaded] = useState(false);
-  const [policyInfo, setPolicyInfo] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: '// POLICY INTELLIGENCE SYSTEM — ONLINE\n// No document loaded. Upload a PDF to begin.\n// Supports: ISO 27001 · NIST · SOC2 · GDPR · HIPAA · Internal Policies\n// Model: Groq LLaMA 3.3 70B  |  Standing by…',
-    }
-  ]);
-  const [input, setInput] = useState('');
+  const [policyInfo,   setPolicyInfo]   = useState(null);
+  const [uploading,    setUploading]    = useState(false);
+  const [isDragging,   setIsDragging]   = useState(false);
+  const [messages,     setMessages]     = useState([{
+    role: 'assistant',
+    content: 'POLICY INTELLIGENCE SYSTEM — ONLINE\n\nNo document loaded. Upload a security policy PDF to begin interrogation.\n\nSupports: ISO 27001 · NIST · SOC2 · GDPR · HIPAA · Internal Policies',
+    timestamp: new Date(),
+  }]);
+  const [input,   setInput]   = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const endRef = useRef(null);
-  const inputRef = useRef(null);
+  const [error,   setError]   = useState(null);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
+  const endRef      = useRef(null);
+  const inputRef    = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'}/api/policy-status`).then(r => {
-      if (r.data.data.loaded) { setPolicyLoaded(true); setPolicyInfo({ filename: r.data.data.filename }); }
-    }).catch(() => { });
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  useEffect(() => {
+    axios.get('http://127.0.0.1:5000/api/policy-status')
+      .then(r => {
+        if (r.data.data.loaded) {
+          setPolicyLoaded(true);
+          setPolicyInfo({ filename: r.data.data.filename, characters: r.data.data.characters });
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  /* ── upload ── */
   const processFile = useCallback(async (file) => {
     if (!file) return;
-    setUploading(true); setError(null);
+    setUploading(true);
+    setError(null);
     try {
-      const fd = new FormData(); fd.append('policy', file);
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'}/api/upload-policy`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const fd = new FormData();
+      fd.append('policy', file);
+      const res = await axios.post('http://127.0.0.1:5000/api/upload-policy', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       if (res.data.success) {
-        setPolicyLoaded(true); setPolicyInfo(res.data.data);
+        setPolicyLoaded(true);
+        setPolicyInfo(res.data.data);
         setMessages([{
           role: 'assistant',
-          content: `// DOCUMENT INGESTED\n// File    : ${res.data.data.filename}\n// Chars   : ${res.data.data.characters}\n// Status  : INDEXED\n\n> Interrogation mode ACTIVE. Submit your first query.`,
+          content: `DOCUMENT INDEXED SUCCESSFULLY\n\nFile: ${res.data.data.filename}\nCharacters: ${res.data.data.characters}\nStatus: READY FOR INTERROGATION\n\nYou may now query this policy document.`,
+          timestamp: new Date(),
+          isSuccess: true,
         }]);
       }
-    } catch { setError('Upload failed — ensure backend is running on port 5000'); }
-    finally { setUploading(false); }
+    } catch (err) {
+      if (err.response?.data?.error) {
+        setError(`Upload failed: ${err.response.data.error}`);
+      } else {
+        setError('Upload failed — ensure backend is running on port 5000');
+      }
+    } finally {
+      setUploading(false);
+    }
   }, []);
 
-  const handleUpload = (e) => processFile(e.target.files[0]);
-  const dd = useDragDrop(processFile);
+  const handleFileChange = (e) => processFile(e.target.files[0]);
+  const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); processFile(e.dataTransfer.files[0]); };
 
-  /* ── ask ── */
   const handleAsk = async () => {
     if (!input.trim() || loading) return;
     const q = input.trim();
     setInput('');
-    setMessages(p => [...p, { role: 'user', content: q }]);
+    setMessages(p => [...p, { role: 'user', content: q, timestamp: new Date() }]);
     setLoading(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'}/api/ask-policy`, { question: q });
-      if (res.data.success) setMessages(p => [...p, { role: 'assistant', content: res.data.data.answer }]);
+      const res = await axios.post('http://127.0.0.1:5000/api/ask-policy', { question: q });
+      if (res.data.success) {
+        setMessages(p => [...p, { role: 'assistant', content: res.data.data.answer, timestamp: new Date() }]);
+      }
     } catch {
-      setMessages(p => [...p, { role: 'assistant', content: '[ERR 503] Cannot reach backend. Check server.', isError: true }]);
+      setMessages(p => [...p, {
+        role: 'assistant',
+        content: '[ERR 503] Cannot reach backend. Check server.',
+        timestamp: new Date(),
+        isError: true,
+      }]);
     }
     setLoading(false);
   };
 
   return (
-    <div className="relative overflow-hidden" style={{ height: '100%', minHeight: 0, background: '#020a06' }}>
-      <ScanBackground />
-      <div className="absolute inset-0 pointer-events-none z-[1]"
-        style={{ background: 'radial-gradient(ellipse at 25% 50%, transparent 35%, rgba(0,0,0,0.72) 100%)' }} />
+    <div className="relative w-full overflow-hidden" style={{ background: '#03060f', height: '100%' }}>
+      <PolicyBackground />
+
+      <div
+        className="absolute inset-0 pointer-events-none z-[1]"
+        style={{ background: 'radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.55) 100%)' }}
+      />
 
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="relative z-10 flex flex-col"
-        style={{ height: '100%', padding: '14px 18px', gap: 10 }}
+        transition={{ duration: 0.6 }}
+        className="relative z-10 flex flex-col gap-4 p-6"
+        style={{ height: '100%' }}
       >
+
         {/* ══ HEADER ══ */}
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: -14 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
           className="flex items-center justify-between shrink-0"
         >
-          {/* title */}
-          <div className="flex items-center gap-3">
-            <div style={{ width: 3, height: 32, background: '#00ff88', boxShadow: '0 0 10px #00ff88', borderRadius: 2 }} />
-            <div>
-              <h1 className="font-display font-black" style={{ fontSize: 21, color: '#f0fdf4', letterSpacing: '-0.025em', lineHeight: 1 }}>
-                POLICY
-                <span style={{ color: '#00ff88', textShadow: '0 0 22px rgba(0,255,136,0.55)', marginLeft: 8 }}>_INTERROGATE</span>
-              </h1>
-              <p className="font-mono mt-0.5" style={{ fontSize: 8.5, color: 'rgba(0,255,136,0.32)', letterSpacing: '0.22em' }}>
-                DOCUMENT INTELLIGENCE · LLaMA 3.3 70B · GROQ
-              </p>
-            </div>
-          </div>
-
-          {/* right chips */}
-          <div className="flex items-center gap-3">
-            {[
-              { k: 'QUERIES', v: messages.length },
-              { k: 'ENGINE', v: 'Groq AI' },
-            ].map(({ k, v }) => (
-              <div key={k} className="text-right">
-                <p className="font-mono font-bold" style={{ fontSize: 12, color: '#00ff88', lineHeight: 1 }}>{v}</p>
-                <p className="font-mono" style={{ fontSize: 7.5, color: 'rgba(0,255,136,0.28)', letterSpacing: '0.2em' }}>{k}</p>
-              </div>
-            ))}
-            {/* status pill */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded"
-              style={{
-                background: policyLoaded ? 'rgba(0,255,136,0.06)' : 'rgba(0,255,136,0.02)',
-                border: `1px solid ${policyLoaded ? 'rgba(0,255,136,0.28)' : 'rgba(0,255,136,0.07)'}`,
-              }}
-            >
-              <motion.div
-                animate={{ opacity: policyLoaded ? [1, 0.3, 1] : 0.18 }}
-                transition={{ duration: 1.1, repeat: Infinity }}
-                style={{ width: 5, height: 5, borderRadius: '50%', background: '#00ff88' }}
-              />
-              <span className="font-mono font-bold" style={{ fontSize: 8.5, color: policyLoaded ? '#00ff88' : 'rgba(0,255,136,0.25)', letterSpacing: '0.18em' }}>
-                {policyLoaded ? 'DOC LOADED' : 'STANDBY'}
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <div style={{ width: 28, height: 1, background: 'rgba(0,243,255,0.5)' }} />
+              <span className="font-mono uppercase tracking-[0.22em]" style={{ fontSize: 11, color: 'rgba(0,243,255,0.6)' }}>
+                Module 07 / Policy Intelligence
               </span>
             </div>
+            <h1 className="font-display font-black tracking-tight" style={{ fontSize: 26, color: '#f1f5f9', letterSpacing: '-0.01em' }}>
+              POLICY
+              <span style={{ color: '#00f3ff', textShadow: '0 0 28px rgba(0,243,255,0.6)', marginLeft: 10 }}>
+                INTERROGATOR
+              </span>
+            </h1>
+            <p className="font-mono mt-1" style={{ fontSize: 11, color: '#94a3b8', letterSpacing: '0.1em' }}>
+              PDF PARSING · NLP EXTRACTION · GROQ LLaMA 3.3 70B · DOCUMENT Q&amp;A
+            </p>
+          </div>
+
+          <div
+            className="flex items-center gap-2 px-4 py-2 rounded-full"
+            style={{
+              background: policyLoaded ? 'rgba(57,255,20,0.06)' : 'rgba(0,243,255,0.06)',
+              border: `1px solid ${policyLoaded ? 'rgba(57,255,20,0.2)' : 'rgba(0,243,255,0.15)'}`,
+            }}
+          >
+            <motion.span
+              className="rounded-full"
+              style={{ width: 6, height: 6, background: policyLoaded ? '#39ff14' : '#00f3ff', display: 'block' }}
+              animate={{ opacity: [1, 0.3, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
+            <span className="font-mono font-bold uppercase tracking-widest" style={{ fontSize: 11, color: policyLoaded ? '#39ff14' : '#00f3ff' }}>
+              {policyLoaded ? 'Document Loaded' : 'Awaiting Document'}
+            </span>
           </div>
         </motion.div>
 
-        {/* ══ BODY SPLIT ══ */}
-        <div className="flex-1 min-h-0" style={{ display: 'grid', gridTemplateColumns: '268px 1fr', gap: 10 }}>
+        {/* ══ MAIN GRID ══ */}
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 min-h-0">
 
-          {/* ─── VAULT SIDEBAR ─── */}
+          {/* ── LEFT PANEL ── */}
           <motion.div
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
             className="flex flex-col gap-3 min-h-0"
           >
-
-            {/* ── Upload card ── */}
+            {/* Upload Zone */}
             <div
-              className="relative rounded-xl overflow-hidden flex-shrink-0"
-              style={{
-                background: 'rgba(0,12,6,0.92)',
-                border: `1px solid ${dd.over ? 'rgba(0,255,136,0.45)' : 'rgba(0,255,136,0.09)'}`,
-                boxShadow: dd.over ? '0 0 20px rgba(0,255,136,0.08)' : 'none',
-                transition: 'border-color .2s, box-shadow .2s',
-              }}
-              onDragOver={dd.onDragOver} onDragLeave={dd.onDragLeave} onDrop={dd.onDrop}
+              className="rounded-2xl shrink-0"
+              style={{ background: 'rgba(5,9,18,0.85)', border: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(16px)' }}
             >
-              {/* stamp */}
-              <motion.div
-                animate={{ opacity: policyLoaded ? 0.85 : 0.22, rotate: policyLoaded ? -7 : -12 }}
-                transition={{ duration: 0.4 }}
-                className="absolute top-3 right-3 pointer-events-none"
-              >
-                <div className="px-2.5 py-0.5 font-mono font-black uppercase tracking-[0.22em] rounded"
-                  style={{ fontSize: 8, border: `2px solid ${policyLoaded ? 'rgba(0,255,136,0.55)' : 'rgba(0,255,136,0.14)'}`, color: policyLoaded ? 'rgba(0,255,136,0.65)' : 'rgba(0,255,136,0.18)' }}>
-                  {policyLoaded ? 'INDEXED' : 'VACANT'}
-                </div>
-              </motion.div>
+              <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleFileChange} />
 
-              {/* header */}
-              <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: '1px solid rgba(0,255,136,0.06)' }}>
-                <FileText size={11} style={{ color: 'rgba(0,255,136,0.4)' }} />
-                <span className="font-mono uppercase tracking-[0.2em]" style={{ fontSize: 8.5, color: 'rgba(0,255,136,0.35)' }}>Document Vault</span>
-              </div>
-
-              <div className="p-4">
-                {/* redaction preview */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-mono truncate" style={{ fontSize: 8, color: 'rgba(0,255,136,0.22)', letterSpacing: '0.12em', maxWidth: '80%' }}>
-                      {policyLoaded ? policyInfo?.filename : 'NO DOCUMENT'}
-                    </span>
-                    {policyLoaded && <CheckCircle size={9} style={{ color: '#00ff88', flexShrink: 0 }} />}
+              {policyLoaded && policyInfo ? (
+                <div className="flex flex-col gap-3 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)' }}>
+                      <CheckCircle size={18} style={{ color: '#39ff14' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-mono font-bold truncate" style={{ fontSize: 12, color: '#39ff14' }}>{policyInfo.filename}</p>
+                      <p className="font-mono" style={{ fontSize: 11, color: '#94a3b8' }}>{policyInfo.characters?.toLocaleString()} chars indexed</p>
+                    </div>
                   </div>
-                  <RedactionLines loaded={policyLoaded} />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-2 rounded-xl font-mono font-bold uppercase tracking-widest transition-all duration-200"
+                    style={{ fontSize: 11, color: '#94a3b8', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#00f3ff'; e.currentTarget.style.borderColor = 'rgba(0,243,255,0.2)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+                  >
+                    swap document
+                  </button>
                 </div>
-
-                {/* drop zone */}
-                <input type="file" id="policyUpload" accept=".pdf" className="hidden" onChange={handleUpload} />
-                <label htmlFor="policyUpload"
-                  className="flex flex-col items-center justify-center rounded-lg cursor-pointer transition-all duration-200"
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={handleDrop}
+                  className="flex flex-col items-center justify-center gap-4 p-8 cursor-pointer rounded-2xl transition-all duration-200"
                   style={{
-                    minHeight: 72,
-                    border: `1.5px dashed ${dd.over ? 'rgba(0,255,136,0.45)' : 'rgba(0,255,136,0.13)'}`,
-                    background: dd.over ? 'rgba(0,255,136,0.04)' : 'rgba(0,0,0,0.2)',
+                    minHeight: 164,
+                    border: `1px dashed ${isDragging ? 'rgba(0,243,255,0.55)' : 'rgba(0,243,255,0.2)'}`,
+                    background: isDragging ? 'rgba(0,243,255,0.04)' : 'transparent',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,255,136,0.28)'}
-                  onMouseLeave={e => { if (!dd.over) e.currentTarget.style.borderColor = 'rgba(0,255,136,0.13)'; }}
                 >
-                  {uploading ? (
-                    <>
-                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                        <Loader size={14} style={{ color: '#00ff88' }} />
-                      </motion.div>
-                      <span className="font-mono mt-1.5" style={{ fontSize: 8.5, color: 'rgba(0,255,136,0.45)', letterSpacing: '0.15em' }}>INGESTING…</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload size={15} style={{ color: 'rgba(0,255,136,0.32)' }} />
-                      <span className="font-mono mt-1.5 text-center" style={{ fontSize: 8.5, color: 'rgba(0,255,136,0.32)', letterSpacing: '0.14em', lineHeight: 1.9 }}>
-                        {policyLoaded ? 'DROP TO REPLACE' : 'DROP PDF HERE'}<br />
-                        <span style={{ color: 'rgba(0,255,136,0.18)' }}>OR CLICK TO BROWSE</span>
-                      </span>
-                    </>
-                  )}
-                </label>
-
-                {error && (
-                  <div className="flex items-start gap-2 mt-3 px-3 py-2 rounded"
-                    style={{ background: 'rgba(255,0,60,0.05)', border: '1px solid rgba(255,0,60,0.18)' }}>
-                    <AlertTriangle size={9} style={{ color: '#ff003c', flexShrink: 0, marginTop: 1 }} />
-                    <span className="font-mono" style={{ fontSize: 8.5, color: '#ff003c', lineHeight: 1.5 }}>{error}</span>
+                  <motion.div
+                    animate={uploading ? {} : { y: [0, -5, 0] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                    style={{ background: 'rgba(0,243,255,0.06)', border: '1px solid rgba(0,243,255,0.18)' }}
+                  >
+                    {uploading
+                      ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                          <Loader size={24} style={{ color: '#00f3ff' }} />
+                        </motion.div>
+                      : <Upload size={24} style={{ color: 'rgba(0,243,255,0.6)' }} />
+                    }
+                  </motion.div>
+                  <div className="text-center">
+                    <p className="font-display font-bold" style={{ fontSize: 14, color: uploading ? '#00f3ff' : '#cbd5e1', marginBottom: 4 }}>
+                      {uploading ? 'Ingesting document…' : 'Drop PDF here'}
+                    </p>
+                    <p className="font-mono" style={{ fontSize: 11, color: '#94a3b8' }}>or click to browse · PDF only</p>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
+              {error && (
+                <div className="flex items-center gap-2 px-4 pb-4 font-mono" style={{ fontSize: 11, color: '#ff003c' }}>
+                  <AlertTriangle size={11} style={{ flexShrink: 0 }} />
+                  {error}
+                </div>
+              )}
             </div>
 
-            {/* ── Quick Queries ── */}
-            <div className="rounded-xl flex-1 min-h-0 overflow-hidden flex flex-col"
-              style={{ background: 'rgba(0,12,6,0.92)', border: '1px solid rgba(0,255,136,0.09)' }}>
-              <div className="flex items-center gap-2 px-4 py-2.5 shrink-0" style={{ borderBottom: '1px solid rgba(0,255,136,0.06)' }}>
-                <Hash size={10} style={{ color: 'rgba(0,255,136,0.38)' }} />
-                <span className="font-mono uppercase tracking-[0.2em]" style={{ fontSize: 8.5, color: 'rgba(0,255,136,0.35)' }}>
-                  Quick Queries
-                </span>
+            {/* Quick Queries */}
+            <div
+              className="rounded-2xl flex-1 flex flex-col min-h-0"
+              style={{ background: 'rgba(5,9,18,0.85)', border: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(16px)' }}
+            >
+              <div className="flex items-center gap-2 px-4 py-3 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                <Hash size={11} style={{ color: 'rgba(0,243,255,0.4)' }} />
+                <span className="font-mono uppercase tracking-widest" style={{ fontSize: 11, color: '#94a3b8' }}>Quick Queries</span>
               </div>
-              <div className="overflow-y-auto flex-1 p-2.5 space-y-1.5 custom-scrollbar">
+
+              <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
                 {QUERIES.map(({ tag, q }, i) => (
                   <motion.button
                     key={i}
-                    initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.18 + i * 0.055 }}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.12 + i * 0.05 }}
                     onClick={() => { setInput(q); inputRef.current?.focus(); }}
                     disabled={!policyLoaded}
-                    className="w-full text-left flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all duration-150"
+                    className="w-full text-left flex items-start gap-3 px-4 py-3 font-mono transition-all duration-150"
                     style={{
-                      background: 'rgba(0,0,0,0.28)',
-                      border: '1px solid rgba(0,255,136,0.05)',
-                      opacity: policyLoaded ? 1 : 0.28,
+                      opacity: policyLoaded ? 1 : 0.3,
                       cursor: policyLoaded ? 'pointer' : 'not-allowed',
+                      background: 'transparent',
                     }}
-                    onMouseEnter={e => { if (policyLoaded) { e.currentTarget.style.borderColor = 'rgba(0,255,136,0.22)'; e.currentTarget.style.background = 'rgba(0,255,136,0.03)'; } }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(0,255,136,0.05)'; e.currentTarget.style.background = 'rgba(0,0,0,0.28)'; }}
+                    onMouseEnter={e => { if (policyLoaded) e.currentTarget.style.background = 'rgba(0,243,255,0.04)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                   >
-                    <span className="font-mono font-bold shrink-0 px-1.5 py-0.5 rounded"
-                      style={{ fontSize: 7, color: '#00ff88', background: 'rgba(0,255,136,0.08)', letterSpacing: '0.08em' }}>
+                    <span className="font-mono font-black shrink-0 mt-0.5"
+                      style={{ fontSize: 10, color: 'rgba(0,243,255,0.45)', letterSpacing: '0.08em', minWidth: 30 }}>
                       {tag}
                     </span>
-                    <span className="font-mono truncate" style={{ fontSize: 9.5, color: 'rgba(0,255,136,0.32)', lineHeight: 1.4 }}>{q}</span>
-                    <ChevronRight size={8} style={{ color: 'rgba(0,255,136,0.18)', marginLeft: 'auto', flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, color: '#8eb4d4', lineHeight: 1.55 }}>{q}</span>
                   </motion.button>
                 ))}
+              </div>
+
+              <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                <span className="font-mono" style={{ fontSize: 11, color: '#94a3b8' }}>LLaMA 3.3 · Groq</span>
+                <div className="flex items-center gap-1.5">
+                  <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#39ff14', display: 'block', boxShadow: '0 0 4px #39ff14' }} />
+                  <span className="font-mono" style={{ fontSize: 11, color: '#39ff14' }}>online</span>
+                </div>
               </div>
             </div>
           </motion.div>
 
-          {/* ─── TERMINAL PANEL ─── */}
+          {/* ── RIGHT: CHAT PANEL ── */}
           <motion.div
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.12 }}
-            className="flex flex-col rounded-xl overflow-hidden min-h-0"
-            style={{ background: 'rgba(0,8,4,0.96)', border: '1px solid rgba(0,255,136,0.09)' }}
+            transition={{ delay: 0.15, duration: 0.5 }}
+            className="flex flex-col rounded-2xl overflow-hidden min-h-0"
+            style={{
+              background: 'rgba(5,9,18,0.88)',
+              border: '1px solid rgba(0,243,255,0.1)',
+              backdropFilter: 'blur(20px)',
+              boxShadow: '0 0 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.10)',
+            }}
           >
-            {/* chrome bar */}
-            <div className="flex items-center justify-between px-4 py-2.5 shrink-0"
-              style={{ borderBottom: '1px solid rgba(0,255,136,0.06)', background: 'rgba(0,0,0,0.32)' }}>
-              <div className="flex items-center gap-3">
+            {/* top bar */}
+            <div className="flex items-center justify-between px-6 py-4 shrink-0" style={{ borderBottom: '1px solid rgba(0,243,255,0.07)' }}>
+              <div className="flex items-center gap-4">
                 <div className="flex gap-1.5">
-                  {['#ff5f57', '#febc2e', '#28c840'].map((c, i) => (
-                    <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: c, opacity: 0.6 }} />
+                  {['#ff003c', '#f59e0b', '#39ff14'].map((c, i) => (
+                    <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: c, opacity: 0.65 }} />
                   ))}
                 </div>
-                <div style={{ width: 1, height: 12, background: 'rgba(0,255,136,0.1)' }} />
-                <span className="font-mono" style={{ fontSize: 9, color: 'rgba(0,255,136,0.3)', letterSpacing: '0.08em' }}>
-                  policy@cybershield ~ {policyLoaded && <span style={{ color: 'rgba(0,255,136,0.5)' }}>— {policyInfo?.filename}</span>}
-                </span>
+                <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.13)' }} />
+                <div className="flex items-center gap-2">
+                  <Shield size={13} style={{ color: '#00f3ff' }} />
+                  <span className="font-mono font-bold uppercase tracking-widest" style={{ fontSize: 12, color: '#94a3b8' }}>
+                    Policy Intelligence
+                  </span>
+                  <div className="px-2 py-0.5 rounded font-mono font-bold"
+                    style={{
+                      fontSize: 11,
+                      background: policyLoaded ? 'rgba(57,255,20,0.08)' : 'rgba(0,243,255,0.05)',
+                      border: `1px solid ${policyLoaded ? 'rgba(57,255,20,0.2)' : 'rgba(0,243,255,0.12)'}`,
+                      color: policyLoaded ? '#39ff14' : '#00f3ff',
+                      letterSpacing: '0.12em',
+                    }}>
+                    {policyLoaded ? '● ACTIVE' : '● STANDBY'}
+                  </div>
+                </div>
               </div>
-              <span className="font-mono" style={{ fontSize: 8, color: 'rgba(0,255,136,0.18)', letterSpacing: '0.15em' }}>
-                {messages.length} EXCHANGES
-              </span>
+              {policyLoaded && policyInfo && (
+                <div className="flex items-center gap-2">
+                  <FileText size={11} style={{ color: '#94a3b8' }} />
+                  <span className="font-mono truncate max-w-[200px]" style={{ fontSize: 11, color: '#94a3b8' }}>
+                    {policyInfo.filename}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* messages */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar" style={{ padding: '14px 18px' }}>
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 custom-scrollbar">
               <AnimatePresence initial={false}>
-                {messages.map((msg, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="mb-4"
-                  >
-                    {msg.role === 'user' ? (
-                      <div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className="font-mono font-bold" style={{ fontSize: 8.5, color: '#00ff88', letterSpacing: '0.2em' }}>OPERATOR</span>
-                          <div style={{ flex: 1, height: 1, background: 'rgba(0,255,136,0.07)' }} />
-                          <span className="font-mono" style={{ fontSize: 7.5, color: 'rgba(0,255,136,0.2)' }}>{new Date().toLocaleTimeString()}</span>
-                        </div>
-                        <div className="rounded-lg px-4 py-2.5 font-mono"
-                          style={{
-                            fontSize: 11.5, lineHeight: 1.7,
-                            color: '#86efac',
-                            background: 'rgba(0,255,136,0.04)',
-                            border: '1px solid rgba(0,255,136,0.11)',
-                            borderLeft: '3px solid rgba(0,255,136,0.6)',
-                          }}>
-                          <span style={{ color: 'rgba(0,255,136,0.38)', marginRight: 8 }}>&gt;</span>{msg.content}
-                        </div>
+                {messages.map((msg, idx) => {
+                  const isUser = msg.role === 'user';
+                  return (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
+                    >
+                      <div
+                        className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center font-mono font-black self-end mb-1"
+                        style={{
+                          fontSize: 10,
+                          background: isUser ? 'rgba(0,243,255,0.1)' : msg.isError ? 'rgba(255,0,60,0.1)' : 'rgba(57,255,20,0.08)',
+                          border: `1px solid ${isUser ? 'rgba(0,243,255,0.25)' : msg.isError ? 'rgba(255,0,60,0.25)' : 'rgba(57,255,20,0.2)'}`,
+                          color: isUser ? '#00f3ff' : msg.isError ? '#ff003c' : '#39ff14',
+                        }}
+                      >
+                        {isUser ? 'YOU' : 'AI'}
                       </div>
-                    ) : (
-                      <div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className="font-mono font-bold" style={{ fontSize: 8.5, color: msg.isError ? '#ff003c' : 'rgba(0,255,136,0.45)', letterSpacing: '0.2em' }}>
-                            {msg.isError ? '// ERROR' : '// POLICY_AI'}
-                          </span>
-                          <div style={{ flex: 1, height: 1, background: 'rgba(0,255,136,0.04)' }} />
-                        </div>
-                        <div className="rounded-lg px-4 py-2.5 font-mono"
-                          style={{
-                            fontSize: 11.5, lineHeight: 1.85,
-                            whiteSpace: 'pre-wrap',
-                            color: msg.isError ? '#ff6b6b' : 'rgba(0,255,136,0.52)',
-                            background: msg.isError ? 'rgba(255,0,60,0.04)' : 'rgba(0,0,0,0.38)',
-                            border: `1px solid ${msg.isError ? 'rgba(255,0,60,0.14)' : 'rgba(0,255,136,0.05)'}`,
-                          }}>
-                          {msg.content}
-                        </div>
+
+                      <div
+                        className="max-w-[80%] rounded-2xl px-4 py-3 font-mono"
+                        style={{
+                          fontSize: 11,
+                          lineHeight: 1.65,
+                          background: isUser ? 'rgba(0,243,255,0.07)' : msg.isError ? 'rgba(255,0,60,0.07)' : msg.isSuccess ? 'rgba(57,255,20,0.05)' : 'rgba(5,9,18,0.9)',
+                          border: `1px solid ${isUser ? 'rgba(0,243,255,0.18)' : msg.isError ? 'rgba(255,0,60,0.2)' : msg.isSuccess ? 'rgba(57,255,20,0.2)' : 'rgba(255,255,255,0.13)'}`,
+                          color: isUser ? '#94a3b8' : msg.isError ? '#ff003c' : msg.isSuccess ? '#39ff14' : '#a8bdd4',
+                          borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                          backdropFilter: 'blur(12px)',
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
+                        {!isUser && (
+                          <div className="flex items-center gap-2 mb-2 pb-2"
+                            style={{ borderBottom: `1px solid ${msg.isError ? 'rgba(255,0,60,0.15)' : msg.isSuccess ? 'rgba(57,255,20,0.15)' : 'rgba(255,255,255,0.10)'}` }}>
+                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: msg.isError ? '#ff003c' : '#39ff14', display: 'block', boxShadow: `0 0 5px ${msg.isError ? '#ff003c' : '#39ff14'}` }} />
+                            <span className="font-mono font-bold uppercase tracking-widest" style={{ fontSize: 10, color: msg.isError ? '#ff003c' : '#39ff14' }}>
+                              {msg.isError ? 'ERROR' : 'POLICY AI'}
+                            </span>
+                            <span className="font-mono ml-auto" style={{ fontSize: 10, color: '#94a3b8' }}>
+                              {new Date(msg.timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
+                        )}
+                        {isUser && (
+                          <div className="flex justify-end mb-1.5">
+                            <span className="font-mono" style={{ fontSize: 10, color: '#94a3b8' }}>
+                              {new Date(msg.timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
+                        )}
+                        {msg.content}
                       </div>
-                    )}
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
 
               {loading && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="font-mono font-bold" style={{ fontSize: 8.5, color: 'rgba(0,255,136,0.38)', letterSpacing: '0.2em' }}>// POLICY_AI</span>
-                    <div style={{ flex: 1, height: 1, background: 'rgba(0,255,136,0.04)' }} />
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3">
+                  <div className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center font-mono font-black self-end mb-1"
+                    style={{ fontSize: 10, background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.2)', color: '#39ff14' }}>
+                    AI
                   </div>
-                  <div className="rounded-lg px-4 py-2.5 flex items-center gap-3"
-                    style={{ background: 'rgba(0,0,0,0.38)', border: '1px solid rgba(0,255,136,0.05)' }}>
+                  <div className="px-4 py-3 rounded-2xl flex items-center gap-3"
+                    style={{ background: 'rgba(5,9,18,0.9)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: '18px 18px 18px 4px' }}>
                     <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }}>
-                      <Loader size={10} style={{ color: 'rgba(0,255,136,0.45)' }} />
+                      <Search size={12} style={{ color: '#00f3ff' }} />
                     </motion.div>
-                    <span className="font-mono" style={{ fontSize: 9.5, color: 'rgba(0,255,136,0.25)', letterSpacing: '0.1em' }}>
-                      SCANNING · EXTRACTING RELEVANT SECTIONS…
-                    </span>
-                    <Cursor />
+                    <span className="font-mono" style={{ fontSize: 11, color: '#94a3b8' }}>Scanning policy document…</span>
+                    <div className="flex items-center gap-1">
+                      {[0, 1, 2].map(i => (
+                        <motion.span key={i}
+                          style={{ width: 4, height: 4, borderRadius: '50%', background: '#00f3ff', display: 'block' }}
+                          animate={{ opacity: [0.2, 1, 0.2], scale: [0.8, 1.1, 0.8] }}
+                          transition={{ duration: 1, repeat: Infinity, delay: i * 0.22 }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -457,97 +537,107 @@ const PolicyChatbot = () => {
               <div ref={endRef} />
             </div>
 
-            {/* input */}
-            <div className="shrink-0 px-4 py-3"
-              style={{ borderTop: '1px solid rgba(0,255,136,0.07)', background: 'rgba(0,0,0,0.38)' }}>
+            {/* input bar */}
+            <div className="shrink-0 px-6 py-4" style={{ borderTop: '1px solid rgba(0,243,255,0.07)' }}>
               {!policyLoaded && (
                 <motion.div
-                  animate={{ opacity: [0.45, 0.9, 0.45] }}
+                  animate={{ opacity: [0.5, 0.9, 0.5] }}
                   transition={{ duration: 2.2, repeat: Infinity }}
-                  className="flex items-center gap-2 mb-2.5 px-3 py-2 rounded"
-                  style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid rgba(245,158,11,0.14)' }}>
-                  <AlertTriangle size={9} style={{ color: '#f59e0b', flexShrink: 0 }} />
-                  <span className="font-mono" style={{ fontSize: 8.5, color: '#f59e0b', letterSpacing: '0.1em' }}>
-                    Upload a PDF to enable interrogation
-                  </span>
+                  className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl font-mono"
+                  style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', fontSize: 12, color: '#f59e0b' }}
+                >
+                  <AlertTriangle size={12} style={{ flexShrink: 0 }} />
+                  Upload a PDF document to enable interrogation
                 </motion.div>
               )}
-              <div className="flex items-end gap-2">
-                <span className="font-mono font-bold shrink-0 mb-2" style={{ fontSize: 16, color: '#00ff88', lineHeight: 1, letterSpacing: '-0.02em' }}>››</span>
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={e => {
-                    setInput(e.target.value);
-                    e.target.style.height = 'auto';
-                    e.target.style.height = Math.min(e.target.scrollHeight, 96) + 'px';
-                  }}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAsk(); } }}
-                  placeholder={policyLoaded ? 'Query policy document… Enter ↵ to send' : 'Load a PDF first…'}
-                  disabled={!policyLoaded || loading}
-                  rows={1}
-                  className="flex-1 resize-none font-mono outline-none custom-scrollbar"
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    borderBottom: `1px solid ${input.trim() ? 'rgba(0,255,136,0.32)' : 'rgba(0,255,136,0.09)'}`,
-                    borderRadius: 0,
-                    padding: '5px 0 7px',
-                    color: '#86efac',
-                    fontSize: 11.5,
-                    lineHeight: 1.6,
-                    caretColor: '#00ff88',
-                    minHeight: 34,
-                    transition: 'border-color .18s',
-                  }}
-                />
-                <motion.button
-                  whileHover={{ scale: 1.06 }}
-                  whileTap={{ scale: 0.94 }}
+
+              <div className="flex items-end gap-3">
+                <span className="font-mono font-bold shrink-0 mb-3" style={{ fontSize: 16, color: '#00f3ff', lineHeight: 1 }}>›</span>
+                <div className="flex-1">
+                  <textarea
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => {
+                      setInput(e.target.value);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAsk(); } }}
+                    placeholder={policyLoaded ? 'Query policy document… (Enter to send)' : 'Load a PDF first…'}
+                    disabled={!policyLoaded || loading}
+                    rows={1}
+                    className="w-full resize-none font-mono outline-none custom-scrollbar"
+                    style={{
+                      background: 'rgba(0,0,0,0.35)',
+                      border: '1px solid rgba(0,243,255,0.1)',
+                      borderRadius: 14,
+                      padding: '10px 14px',
+                      color: '#94a3b8',
+                      fontSize: 13,
+                      lineHeight: 1.6,
+                      caretColor: '#00f3ff',
+                      overflow: 'hidden',
+                      transition: 'border-color 0.2s',
+                      minHeight: 42,
+                    }}
+                    onFocus={e => e.target.style.borderColor = 'rgba(0,243,255,0.3)'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(0,243,255,0.1)'}
+                  />
+                </div>
+                <button
                   onClick={handleAsk}
                   disabled={!input.trim() || !policyLoaded || loading}
-                  className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+                  className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200"
                   style={{
-                    background: (input.trim() && policyLoaded && !loading) ? 'rgba(0,255,136,0.11)' : 'rgba(0,255,136,0.03)',
-                    border: `1px solid ${(input.trim() && policyLoaded && !loading) ? 'rgba(0,255,136,0.38)' : 'rgba(0,255,136,0.07)'}`,
-                    color: (input.trim() && policyLoaded && !loading) ? '#00ff88' : 'rgba(0,255,136,0.2)',
-                    boxShadow: (input.trim() && policyLoaded && !loading) ? '0 0 10px rgba(0,255,136,0.1)' : 'none',
+                    background: (input.trim() && policyLoaded && !loading) ? 'rgba(0,243,255,0.1)' : 'rgba(255,255,255,0.06)',
+                    border: `1px solid ${(input.trim() && policyLoaded && !loading) ? 'rgba(0,243,255,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                    color: (input.trim() && policyLoaded && !loading) ? '#00f3ff' : '#5a7a9a',
                     cursor: (!input.trim() || !policyLoaded || loading) ? 'not-allowed' : 'pointer',
-                    transition: 'all .18s',
                   }}
+                  onMouseEnter={e => { if (input.trim() && policyLoaded && !loading) e.currentTarget.style.background = 'rgba(0,243,255,0.18)'; }}
+                  onMouseLeave={e => { if (input.trim() && policyLoaded && !loading) e.currentTarget.style.background = 'rgba(0,243,255,0.1)'; }}
                 >
-                  <Send size={12} />
-                </motion.button>
+                  <Send size={15} />
+                </button>
               </div>
-              <p className="font-mono text-right mt-1" style={{ fontSize: 7.5, color: 'rgba(0,255,136,0.15)', letterSpacing: '0.12em' }}>
-                ENTER to send · SHIFT+ENTER for newline
-              </p>
+
+              <div className="flex items-center justify-between mt-2">
+                <p className="font-mono" style={{ fontSize: 11, color: '#94a3b8', letterSpacing: '0.08em' }}>
+                  ENTER · send &nbsp;·&nbsp; SHIFT+ENTER · newline
+                </p>
+                <p className="font-mono" style={{ fontSize: 11, color: '#94a3b8' }}>
+                  {messages.length} exchanges
+                </p>
+              </div>
             </div>
           </motion.div>
         </div>
 
         {/* ══ FOOTER ══ */}
         <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55 }}
           className="flex items-center justify-between shrink-0"
-          style={{ paddingTop: 7, borderTop: '1px solid rgba(0,255,136,0.05)' }}
+          style={{ paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)' }}
         >
-          <span className="font-mono" style={{ fontSize: 8, color: 'rgba(0,255,136,0.18)', letterSpacing: '0.2em' }}>
-            CYBERSHIELD AI · POLICY INTELLIGENCE ENGINE v2
+          <span className="font-mono uppercase tracking-[0.2em]" style={{ fontSize: 11, color: '#8eb4d4' }}>
+            CyberShield AI · Policy Intelligence Engine v2
           </span>
-          <div className="flex items-center gap-5">
-            {[{ k: 'PDF PARSER', ok: true }, { k: 'VECTOR INDEX', ok: policyLoaded }, { k: 'AI BACKEND', ok: true }].map(({ k, ok }) => (
-              <div key={k} className="flex items-center gap-1.5">
-                <motion.div
-                  animate={{ opacity: ok ? [1, 0.35, 1] : 0.18 }}
-                  transition={{ duration: 1.6, repeat: Infinity }}
-                  style={{ width: 4, height: 4, borderRadius: '50%', background: ok ? '#00ff88' : 'rgba(0,255,136,0.18)' }}
-                />
-                <span className="font-mono" style={{ fontSize: 7.5, color: ok ? 'rgba(0,255,136,0.28)' : 'rgba(0,255,136,0.12)', letterSpacing: '0.15em' }}>{k}</span>
+          <div className="flex items-center gap-4">
+            {[
+              { label: 'PDF Parser',   active: true         },
+              { label: 'Vector Index', active: policyLoaded },
+              { label: 'Groq AI',      active: true         },
+            ].map(({ label, active }) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <span style={{ width: 4, height: 4, borderRadius: '50%', background: active ? '#39ff14' : '#ff003c', display: 'block' }} />
+                <span className="font-mono" style={{ fontSize: 11, color: '#8eb4d4', letterSpacing: '0.12em' }}>{label}</span>
               </div>
             ))}
           </div>
         </motion.div>
+
       </motion.div>
     </div>
   );

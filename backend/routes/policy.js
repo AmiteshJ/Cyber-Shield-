@@ -1,10 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import axios from 'axios';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const { PdfReader } = require('pdfreader');
+import { PDFParse } from 'pdf-parse';
 
 const router = express.Router();
 const storage = multer.memoryStorage();
@@ -18,21 +15,13 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 let currentPolicy = null;
 let currentPolicyName = null;
 
-const parsePDF = (buffer) => {
-  return new Promise((resolve, reject) => {
-    const reader = new PdfReader();
-    let text = '';
-    
-    reader.parseBuffer(buffer, (err, item) => {
-      if (err) {
-        reject(err);
-      } else if (!item) {
-        resolve(text);
-      } else if (item.text) {
-        text += item.text + ' ';
-      }
-    });
-  });
+const parsePDF = async (buffer) => {
+  const parser = new PDFParse({ data: new Uint8Array(buffer) });
+  const result = await parser.getText();
+  return {
+    text: result.text,
+    pages: result.total
+  };
 };
 
 router.post('/upload-policy', upload.single('policy'), async (req, res) => {
@@ -43,7 +32,7 @@ router.post('/upload-policy', upload.single('policy'), async (req, res) => {
 
     console.log(`Parsing policy document: ${req.file.originalname}`);
 
-    const text = await parsePDF(req.file.buffer);
+    const { text, pages } = await parsePDF(req.file.buffer);
 
     if (!text || text.trim().length === 0) {
       return res.status(400).json({ error: 'Could not extract text from PDF' });
@@ -58,7 +47,7 @@ router.post('/upload-policy', upload.single('policy'), async (req, res) => {
       success: true,
       data: {
         filename: req.file.originalname,
-        pages: 'N/A',
+        pages: pages,
         characters: text.length,
         preview: text.substring(0, 200) + '...'
       }

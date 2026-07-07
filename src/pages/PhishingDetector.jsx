@@ -200,10 +200,10 @@ const NeuralSpinner = ({ color = '#00f3ff' }) => (
 const StatPill = ({ label, value, color }) => (
   <div
     className="flex flex-col items-center py-3 px-4"
-    style={{ borderRight: '1px solid rgba(255,255,255,0.05)' }}
+    style={{ borderRight: '1px solid rgba(255,255,255,0.10)' }}
   >
     <span className="font-mono font-bold" style={{ fontSize: 15, color }}>{value}</span>
-    <span className="font-mono uppercase tracking-widest" style={{ fontSize: 11, color: '#334155', marginTop: 2 }}>{label}</span>
+    <span className="font-mono uppercase tracking-widest" style={{ fontSize: 11, color: '#8eb4d4', marginTop: 2 }}>{label}</span>
   </div>
 );
 
@@ -249,17 +249,12 @@ const PhishingDetector = () => {
       if (file) formData.append('file', file);
       else formData.append('text', text);
 
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'}/api/phish/analyze`, { method: 'POST', body: formData });
+      const res = await fetch('http://127.0.0.1:5000/api/phish/analyze', { method: 'POST', body: formData });
       const data = await res.json();
 
       if (data.success && data.data) {
         let isPh = data.data.isPhishing;
         let conf = data.data.confidence;
-        if (isPh) {
-          conf = 100 - conf;
-          if (conf < 1) conf = 1;
-          if (conf > 49) conf = 15;
-        }
         setResult({ isPhishing: isPh, confidence: conf, highlighted: data.data.explanation, mode: file ? fileCategory : 'text' });
       } else {
         setResult({ isPhishing: false, confidence: 0, highlighted: data.details ? `Error: ${JSON.stringify(data.details)}` : (data.error || 'Analysis failed.'), mode: file ? fileCategory : 'text' });
@@ -279,7 +274,7 @@ const PhishingDetector = () => {
   const scanStats = [
     { label: 'Engine', value: 'LLaMA 3.3', color: '#00f3ff' },
     { label: 'Mode', value: fileCategory ? FILE_MODE_CONFIG[fileCategory].label.split(' ')[0] : 'TEXT', color: modeConfig ? modeConfig.color : '#00f3ff' },
-    { label: 'Status', value: analyzing ? 'ACTIVE' : result ? 'DONE' : 'IDLE', color: analyzing ? '#f97316' : result ? '#39ff14' : '#334155' },
+    { label: 'Status', value: analyzing ? 'ACTIVE' : result ? 'DONE' : 'IDLE', color: analyzing ? '#f97316' : result ? '#39ff14' : '#8eb4d4' },
   ];
 
   return (
@@ -320,7 +315,7 @@ const PhishingDetector = () => {
                 INTERCEPTOR
               </span>
             </h1>
-            <p className="font-mono mt-1" style={{ fontSize: 13, color: '#475569', letterSpacing: '0.1em' }}>
+            <p className="font-mono mt-1" style={{ fontSize: 13, color: '#94a3b8', letterSpacing: '0.1em' }}>
               NLP · VISION AI · METADATA FORENSICS · DEEPFAKE DETECTION
             </p>
           </div>
@@ -347,7 +342,7 @@ const PhishingDetector = () => {
             {/* Tab switcher */}
             <div
               className="grid grid-cols-2 p-1 rounded-xl gap-1"
-              style={{ background: 'rgba(5,9,18,0.9)', border: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ background: 'rgba(5,9,18,0.9)', border: '1px solid rgba(255,255,255,0.13)' }}
             >
               {[
                 { id: 'text', label: 'Raw Text / URL', icon: FileText },
@@ -366,7 +361,7 @@ const PhishingDetector = () => {
                     fontSize: 12,
                     background: activeTab === id ? 'rgba(0,243,255,0.12)' : 'transparent',
                     border: activeTab === id ? '1px solid rgba(0,243,255,0.3)' : '1px solid transparent',
-                    color: activeTab === id ? '#00f3ff' : '#334155',
+                    color: activeTab === id ? '#00f3ff' : '#8eb4d4',
                     boxShadow: activeTab === id ? '0 0 16px rgba(0,243,255,0.08)' : 'none',
                   }}
                 >
@@ -381,22 +376,22 @@ const PhishingDetector = () => {
               className="flex-1 flex flex-col rounded-2xl overflow-hidden"
               style={{
                 background: 'rgba(5,9,18,0.85)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.13)',
                 backdropFilter: 'blur(16px)',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10)',
               }}
             >
               {/* panel chrome */}
               <div
                 className="flex items-center justify-between px-5 py-3"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.10)' }}
               >
                 <div className="flex gap-1.5">
                   {['#ff003c', '#f59e0b', '#39ff14'].map((c, i) => (
                     <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: c, opacity: 0.6 }} />
                   ))}
                 </div>
-                <span className="font-mono uppercase tracking-widest" style={{ fontSize: 12, color: '#334155' }}>
+                <span className="font-mono uppercase tracking-widest" style={{ fontSize: 12, color: '#8eb4d4' }}>
                   {activeTab === 'text' ? 'Text / URL Payload' : 'File Upload'}
                 </span>
               </div>
@@ -405,7 +400,7 @@ const PhishingDetector = () => {
               {activeTab === 'text' && (
                 <div className="flex-1 flex flex-col p-4 gap-3">
                   <div className="relative flex-1">
-                    <FileText size={14} className="absolute top-3 left-3" style={{ color: '#334155' }} />
+                    <FileText size={14} className="absolute top-3 left-3" style={{ color: '#8eb4d4' }} />
                     <textarea
                       value={text}
                       onChange={(e) => setText(e.target.value)}
@@ -428,16 +423,16 @@ const PhishingDetector = () => {
 
                   {/* char count */}
                   <div className="flex items-center justify-between px-1">
-                    <span className="font-mono" style={{ fontSize: 12, color: '#334155' }}>
+                    <span className="font-mono" style={{ fontSize: 12, color: '#8eb4d4' }}>
                       {text.length} CHARS
                     </span>
                     {text.length > 0 && (
                       <button
                         onClick={() => setText('')}
                         className="font-mono flex items-center gap-1 transition-colors"
-                        style={{ fontSize: 12, color: '#475569' }}
+                        style={{ fontSize: 12, color: '#94a3b8' }}
                         onMouseEnter={e => e.currentTarget.style.color = '#ff003c'}
-                        onMouseLeave={e => e.currentTarget.style.color = '#334155'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#8eb4d4'}
                       >
                         <X size={9} /> CLEAR
                       </button>
@@ -456,13 +451,13 @@ const PhishingDetector = () => {
                         className="text-left p-3 rounded-xl font-mono transition-all duration-200"
                         style={{
                           fontSize: 11,
-                          color: '#334155',
+                          color: '#8eb4d4',
                           background: 'rgba(0,0,0,0.3)',
-                          border: '1px solid rgba(255,255,255,0.04)',
+                          border: '1px solid rgba(255,255,255,0.10)',
                           lineHeight: 1.5,
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,243,255,0.2)'; e.currentTarget.style.color = '#64748b'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#334155'; }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,243,255,0.2)'; e.currentTarget.style.color = '#a8bdd4'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = '#8eb4d4'; }}
                       >
                         <span style={{ color: 'rgba(0,243,255,0.4)', marginRight: 4 }}>EX{i + 1} ›</span>
                         {ex}
@@ -493,12 +488,12 @@ const PhishingDetector = () => {
                           className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all duration-200"
                           style={{
                             background: isActive ? `rgba(${cfg.rgb},0.08)` : 'rgba(0,0,0,0.3)',
-                            border: `1px solid ${isActive ? `rgba(${cfg.rgb},0.4)` : 'rgba(255,255,255,0.05)'}`,
+                            border: `1px solid ${isActive ? `rgba(${cfg.rgb},0.4)` : 'rgba(255,255,255,0.10)'}`,
                             boxShadow: isActive ? `0 0 16px rgba(${cfg.rgb},0.1)` : 'none',
                           }}
                         >
-                          <Icon size={16} style={{ color: isActive ? cfg.color : '#334155' }} />
-                          <span className="font-mono font-bold uppercase tracking-widest" style={{ fontSize: 12, color: isActive ? cfg.color : '#475569' }}>
+                          <Icon size={16} style={{ color: isActive ? cfg.color : '#8eb4d4' }} />
+                          <span className="font-mono font-bold uppercase tracking-widest" style={{ fontSize: 12, color: isActive ? cfg.color : '#94a3b8' }}>
                             {key}
                           </span>
                         </button>
@@ -549,19 +544,19 @@ const PhishingDetector = () => {
                           <UploadCloud size={28} style={{ color: modeConfig?.color || '#00f3ff', filter: `drop-shadow(0 0 8px ${modeConfig?.color || '#00f3ff'})` }} />
                           <div>
                             <p className="font-mono font-bold" style={{ fontSize: 14, color: '#e2e8f0' }}>{file.name}</p>
-                            <p className="font-mono mt-1" style={{ fontSize: 12, color: '#475569' }}>
+                            <p className="font-mono mt-1" style={{ fontSize: 12, color: '#94a3b8' }}>
                               {(file.size / 1024 / 1024).toFixed(2)} MB
                             </p>
                           </div>
-                          <p className="font-mono" style={{ fontSize: 13, color: '#475569', maxWidth: 220, lineHeight: 1.5 }}>
+                          <p className="font-mono" style={{ fontSize: 13, color: '#94a3b8', maxWidth: 220, lineHeight: 1.5 }}>
                             {modeConfig?.desc}
                           </p>
                           <button
                             onClick={(e) => { e.stopPropagation(); clearFile(); }}
                             className="flex items-center gap-1 font-mono font-bold transition-colors"
-                            style={{ fontSize: 12, color: '#475569' }}
+                            style={{ fontSize: 12, color: '#94a3b8' }}
                             onMouseEnter={e => e.currentTarget.style.color = '#ff003c'}
-                            onMouseLeave={e => e.currentTarget.style.color = '#334155'}
+                            onMouseLeave={e => e.currentTarget.style.color = '#8eb4d4'}
                           >
                             <X size={9} /> REMOVE
                           </button>
@@ -577,7 +572,7 @@ const PhishingDetector = () => {
                           <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(0,243,255,0.04)', border: '1px solid rgba(0,243,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <UploadCloud size={20} style={{ color: 'rgba(0,243,255,0.3)' }} />
                           </div>
-                          <p className="font-display font-bold" style={{ fontSize: 15, color: '#475569' }}>
+                          <p className="font-display font-bold" style={{ fontSize: 15, color: '#94a3b8' }}>
                             Drop file or click a mode above
                           </p>
                           <div className="flex gap-2 flex-wrap justify-center">
@@ -609,12 +604,12 @@ const PhishingDetector = () => {
               style={{
                 fontSize: 15,
                 background: !canAnalyze
-                  ? 'rgba(255,255,255,0.03)'
+                  ? 'rgba(255,255,255,0.09)'
                   : analyzing
                     ? 'rgba(0,243,255,0.08)'
                     : 'rgba(0,243,255,0.12)',
-                border: `1px solid ${!canAnalyze ? 'rgba(255,255,255,0.05)' : 'rgba(0,243,255,0.35)'}`,
-                color: !canAnalyze ? '#1e293b' : '#00f3ff',
+                border: `1px solid ${!canAnalyze ? 'rgba(255,255,255,0.10)' : 'rgba(0,243,255,0.35)'}`,
+                color: !canAnalyze ? '#5a7a9a' : '#00f3ff',
                 boxShadow: canAnalyze && !analyzing ? '0 0 30px rgba(0,243,255,0.1)' : 'none',
                 cursor: !canAnalyze ? 'not-allowed' : 'pointer',
               }}
@@ -651,16 +646,16 @@ const PhishingDetector = () => {
               className="flex-1 flex flex-col rounded-2xl overflow-hidden"
               style={{
                 background: 'rgba(5,9,18,0.85)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.13)',
                 backdropFilter: 'blur(16px)',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10)',
                 minHeight: 340,
               }}
             >
               {/* panel header */}
               <div
                 className="flex items-center justify-between px-5 py-3 shrink-0"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.10)' }}
               >
                 <div className="flex items-center gap-3">
                   <div className="flex gap-1.5">
@@ -668,9 +663,9 @@ const PhishingDetector = () => {
                       <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: c, opacity: 0.6 }} />
                     ))}
                   </div>
-                  <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.06)' }} />
+                  <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.13)' }} />
                   <Activity size={12} style={{ color: '#00f3ff' }} />
-                  <span className="font-mono font-bold uppercase tracking-widest" style={{ fontSize: 11, color: '#475569' }}>
+                  <span className="font-mono font-bold uppercase tracking-widest" style={{ fontSize: 11, color: '#94a3b8' }}>
                     Diagnostics Log
                   </span>
                 </div>
@@ -703,8 +698,8 @@ const PhishingDetector = () => {
                         <ShieldCheck size={22} style={{ color: 'rgba(0,243,255,0.25)' }} />
                       </div>
                       <div className="text-center">
-                        <p className="font-mono font-bold uppercase tracking-widest" style={{ fontSize: 12, color: '#334155' }}>System Standby</p>
-                        <p className="font-mono mt-1" style={{ fontSize: 12, color: '#334155' }}>Awaiting data injection</p>
+                        <p className="font-mono font-bold uppercase tracking-widest" style={{ fontSize: 12, color: '#8eb4d4' }}>System Standby</p>
+                        <p className="font-mono mt-1" style={{ fontSize: 12, color: '#8eb4d4' }}>Awaiting data injection</p>
                       </div>
 
                       {/* mode legend */}
@@ -720,7 +715,7 @@ const PhishingDetector = () => {
                               <Icon size={13} style={{ color: cfg.color, opacity: 0.7 }} />
                               <div className="flex-1">
                                 <p className="font-mono font-bold uppercase tracking-widest" style={{ fontSize: 11, color: cfg.color, opacity: 0.8 }}>{cfg.label}</p>
-                                <p className="font-mono" style={{ fontSize: 12, color: '#475569', marginTop: 2, lineHeight: 1.4 }}>{cfg.desc}</p>
+                                <p className="font-mono" style={{ fontSize: 12, color: '#94a3b8', marginTop: 2, lineHeight: 1.4 }}>{cfg.desc}</p>
                               </div>
                             </div>
                           );
@@ -746,7 +741,7 @@ const PhishingDetector = () => {
                             : fileCategory === 'video' ? 'PARSING VIDEO METADATA FORENSICS'
                               : 'EXTRACTING PHISHING SIGNATURES'}
                         </p>
-                        <p className="font-mono mt-2" style={{ fontSize: 12, color: '#475569' }}>
+                        <p className="font-mono mt-2" style={{ fontSize: 12, color: '#94a3b8' }}>
                           {fileCategory === 'image' ? 'Analyzing pixel artifacts & AI generation markers'
                             : fileCategory === 'video' ? 'Scanning for RunwayML / Sora / HeyGen watermarks'
                               : 'Connecting to NLP inference cluster…'}
@@ -762,7 +757,7 @@ const PhishingDetector = () => {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.35 }}
                             className="flex items-center gap-2 font-mono"
-                            style={{ fontSize: 12, color: '#475569' }}
+                            style={{ fontSize: 12, color: '#94a3b8' }}
                           >
                             <motion.span
                               style={{ width: 4, height: 4, borderRadius: '50%', background: modeConfig?.color || '#00f3ff', display: 'block', flexShrink: 0 }}
@@ -812,7 +807,11 @@ const PhishingDetector = () => {
                               }}
                             >
                               {result.isPhishing
-                                ? (result.mode === 'image' || result.mode === 'video' ? 'DEEPFAKE DETECTED' : 'THREAT DETECTED')
+                                ? (result.mode === 'image'
+                                    ? 'AI GENERATED IMAGE'
+                                    : result.mode === 'video'
+                                      ? 'DEEPFAKE DETECTED'
+                                      : 'THREAT DETECTED')
                                 : 'CLEAN SCAN'}
                             </p>
                           </div>
@@ -833,10 +832,10 @@ const PhishingDetector = () => {
                       {/* confidence bar */}
                       <div className="px-6 pt-4 pb-2 shrink-0">
                         <div className="flex justify-between mb-1.5">
-                          <span className="font-mono uppercase tracking-widest" style={{ fontSize: 12, color: '#475569' }}>Confidence Score</span>
+                          <span className="font-mono uppercase tracking-widest" style={{ fontSize: 12, color: '#94a3b8' }}>Confidence Score</span>
                           <span className="font-mono font-bold" style={{ fontSize: 11, color: result.isPhishing ? '#ff003c' : '#39ff14' }}>{result.confidence}%</span>
                         </div>
-                        <div className="rounded-full overflow-hidden" style={{ height: 3, background: 'rgba(255,255,255,0.05)' }}>
+                        <div className="rounded-full overflow-hidden" style={{ height: 3, background: 'rgba(255,255,255,0.10)' }}>
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${result.confidence}%` }}
@@ -857,12 +856,12 @@ const PhishingDetector = () => {
                       <div className="flex-1 overflow-y-auto px-6 pb-5 custom-scrollbar">
                         <div className="flex items-center gap-2 mb-3">
                           <ScanLine size={11} style={{ color: '#00f3ff' }} />
-                          <span className="font-mono uppercase tracking-widest" style={{ fontSize: 11, color: '#475569' }}>Analysis Log</span>
+                          <span className="font-mono uppercase tracking-widest" style={{ fontSize: 11, color: '#94a3b8' }}>Analysis Log</span>
                         </div>
                         <div
                           dangerouslySetInnerHTML={{ __html: result.highlighted }}
                           className="font-mono leading-relaxed"
-                          style={{ fontSize: 13, color: '#64748b', whiteSpace: 'pre-wrap' }}
+                          style={{ fontSize: 13, color: '#a8bdd4', whiteSpace: 'pre-wrap' }}
                         />
                       </div>
                     </motion.div>
@@ -875,7 +874,7 @@ const PhishingDetector = () => {
             {/* Stats strip */}
             <div
               className="grid grid-cols-3 rounded-xl overflow-hidden"
-              style={{ background: 'rgba(5,9,18,0.8)', border: '1px solid rgba(255,255,255,0.05)' }}
+              style={{ background: 'rgba(5,9,18,0.8)', border: '1px solid rgba(255,255,255,0.10)' }}
             >
               {scanStats.map(({ label, value, color }) => (
                 <StatPill key={label} label={label} value={value} color={color} />
@@ -891,9 +890,9 @@ const PhishingDetector = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.55 }}
           className="flex items-center justify-between"
-          style={{ paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.04)' }}
+          style={{ paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.10)' }}
         >
-          <span className="font-mono uppercase tracking-[0.2em]" style={{ fontSize: 12, color: '#475569' }}>
+          <span className="font-mono uppercase tracking-[0.2em]" style={{ fontSize: 12, color: '#94a3b8' }}>
             CyberShield AI · Phishing Interceptor v2
           </span>
           <div className="flex items-center gap-4">
@@ -904,7 +903,7 @@ const PhishingDetector = () => {
             ].map(({ label, active }) => (
               <div key={label} className="flex items-center gap-1.5">
                 <span style={{ width: 4, height: 4, borderRadius: '50%', background: active ? '#39ff14' : '#ff003c', display: 'block' }} />
-                <span className="font-mono" style={{ fontSize: 12, color: '#475569', letterSpacing: '0.12em' }}>{label}</span>
+                <span className="font-mono" style={{ fontSize: 12, color: '#94a3b8', letterSpacing: '0.12em' }}>{label}</span>
               </div>
             ))}
           </div>

@@ -7,21 +7,33 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies
-node_modules
+# Node.js Dependencies
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+ENV/
 
 # Build outputs
-dist
-dist-ssr
-.cache
-.parcel-cache
-.next
-.nuxt
-.svelte-kit
-coverage
+dist/
+dist-ssr/
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.svelte-kit/
+coverage/
 *.tsbuildinfo
 
-# Env files
+# Environment Variables / Secrets
 .env
 .env.*
 !.env.example
@@ -29,27 +41,24 @@ coverage
 # Local config
 *.local
 
-# Editor directories and files
-.vscode/*
+# IDE
+.vscode/
 !.vscode/extensions.json
-.idea
+.idea/
+
+# OS Files
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Visual Studio
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-<<<<<<< HEAD
-# Environment Variables / Secrets
-.env
-.env.*
-!.env.example
-=======
-# Misc
+# Certificates / Keys
 *.pem
 *.key
 *.crt
->>>>>>> 07736eae8f870a6da76e8e3ada918584dfcc578a

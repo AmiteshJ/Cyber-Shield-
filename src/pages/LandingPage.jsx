@@ -343,9 +343,9 @@ const FeatureCard = ({ feature, index }) => {
       className="relative cursor-pointer overflow-hidden rounded-2xl"
       style={{
         background: hovered ? `rgba(${acc.rgb},0.07)` : 'rgba(5,9,18,0.8)',
-        border: `1px solid ${hovered ? `rgba(${acc.rgb},0.4)` : 'rgba(255,255,255,0.07)'}`,
+        border: `1px solid ${hovered ? `rgba(${acc.rgb},0.4)` : 'rgba(255,255,255,0.14)'}`,
         backdropFilter: 'blur(16px)',
-        boxShadow: hovered ? `0 0 40px rgba(${acc.rgb},0.15), inset 0 1px 0 rgba(255,255,255,0.05)` : 'inset 0 1px 0 rgba(255,255,255,0.04)',
+        boxShadow: hovered ? `0 0 40px rgba(${acc.rgb},0.15), inset 0 1px 0 rgba(255,255,255,0.10)` : 'inset 0 1px 0 rgba(255,255,255,0.10)',
         padding: '24px',
         transition: 'all 0.35s ease',
       }}
@@ -396,7 +396,7 @@ const FeatureCard = ({ feature, index }) => {
       <h3 className="font-display font-black mb-2" style={{ fontSize: 14, color: '#f1f5f9', letterSpacing: '0.03em' }}>
         {feature.title}
       </h3>
-      <p className="font-mono leading-relaxed" style={{ fontSize: 10, color: '#334155', lineHeight: 1.7 }}>
+      <p className="font-mono leading-relaxed" style={{ fontSize: 10, color: '#8eb4d4', lineHeight: 1.7 }}>
         {feature.desc}
       </p>
 
@@ -473,7 +473,7 @@ const StatCounter = ({ value, label, color, delay }) => {
       >
         {count.toLocaleString()}{suffix}
       </div>
-      <div className="font-mono uppercase tracking-[0.2em]" style={{ fontSize: 8, color: '#1e293b', marginTop: 4 }}>
+      <div className="font-mono uppercase tracking-[0.2em]" style={{ fontSize: 8, color: '#5a7a9a', marginTop: 4 }}>
         {label}
       </div>
     </motion.div>
@@ -524,7 +524,7 @@ const StepCard = ({ step, index }) => {
       <h3 className="font-display font-black mb-2" style={{ fontSize: 13, color: '#f1f5f9', letterSpacing: '0.05em' }}>
         {step.title}
       </h3>
-      <p className="font-mono leading-relaxed" style={{ fontSize: 10, color: '#334155', maxWidth: 200 }}>
+      <p className="font-mono leading-relaxed" style={{ fontSize: 10, color: '#8eb4d4', maxWidth: 200 }}>
         {step.desc}
       </p>
 
@@ -598,7 +598,7 @@ const LandingPage = () => {
           className="font-mono mb-8 h-5 flex items-center gap-1"
           style={{ fontSize: 10, color: '#39ff14', letterSpacing: '0.12em' }}
         >
-          <span style={{ color: '#1e293b' }}>{'> '}</span>
+          <span style={{ color: '#5a7a9a' }}>{'> '}</span>
           {typed}
           {showCursor && <span style={{ color: '#39ff14', fontWeight: 900 }}>█</span>}
         </motion.div>
@@ -700,7 +700,7 @@ const LandingPage = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 1.4 }}
           className="text-center font-mono max-w-xl mb-10"
-          style={{ fontSize: 11, color: '#334155', lineHeight: 1.9, letterSpacing: '0.06em' }}
+          style={{ fontSize: 11, color: '#8eb4d4', lineHeight: 1.9, letterSpacing: '0.06em' }}
         >
           Next-generation AI-powered cybersecurity platform for real-time threat detection,
           vulnerability prioritization, and intelligent policy interpretation.
@@ -790,7 +790,7 @@ const LandingPage = () => {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
         >
-          <span className="font-mono uppercase tracking-widest" style={{ fontSize: 7, color: '#1e293b' }}>SCROLL</span>
+          <span className="font-mono uppercase tracking-widest" style={{ fontSize: 7, color: '#5a7a9a' }}>SCROLL</span>
           <div
             className="w-5 h-8 rounded-full flex items-start justify-center p-1"
             style={{ border: '1px solid rgba(0,243,255,0.2)' }}
@@ -945,7 +945,7 @@ const LandingPage = () => {
             </GlitchText>
           </h2>
 
-          <p className="font-mono mb-10" style={{ fontSize: 10, color: '#334155', lineHeight: 1.8, letterSpacing: '0.06em' }}>
+          <p className="font-mono mb-10" style={{ fontSize: 10, color: '#8eb4d4', lineHeight: 1.8, letterSpacing: '0.06em' }}>
             Detect threats before they strike. Powered by real AI, real data, real protection.
           </p>
 
@@ -981,7 +981,7 @@ const LandingPage = () => {
       >
         <div className="flex items-center gap-3">
           <Shield size={16} style={{ color: '#00f3ff' }} />
-          <span className="font-display font-bold tracking-widest" style={{ fontSize: 11, color: '#334155' }}>CYBERSHIELD AI</span>
+          <span className="font-display font-bold tracking-widest" style={{ fontSize: 11, color: '#8eb4d4' }}>CYBERSHIELD AI</span>
         </div>
         <div className="flex items-center gap-2">
           <motion.div

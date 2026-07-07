@@ -1,7 +1,8 @@
-import { NavLink, useLocation } from 'react-router-dom';
-import { Shield, Activity, Bug, Mail, AlertTriangle, MessageSquare, Terminal, FileText } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { Shield, Activity, Bug, Mail, AlertTriangle, MessageSquare, Terminal, FileText, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 /* ─────────────────────────────────────────
    MINI CANVAS BACKGROUND for sidebar
@@ -101,6 +102,10 @@ const SidebarBackground = () => {
 ───────────────────────────────────────── */
 const menuItems = [
   { name: 'Dashboard', path: '/dashboard', icon: Activity, accent: '#00f3ff', rgb: '0,243,255' },
+
+  // 🛡️ NEW SPAM SHIELD (INSERTED HERE)
+  { name: 'Spam Shield', path: '/spam-shield', icon: Shield, accent: '#22c55e', rgb: '34,197,94' },
+
   { name: 'Malware Detector', path: '/malware', icon: Bug, accent: '#ff003c', rgb: '255,0,60' },
   { name: 'Phishing Filter', path: '/phishing', icon: Mail, accent: '#a855f7', rgb: '168,85,247' },
   { name: 'Vulnerabilities', path: '/vulnerabilities', icon: AlertTriangle, accent: '#f97316', rgb: '249,115,22' },
@@ -133,9 +138,7 @@ const NavItem = ({ item, index }) => {
             style={{
               background: isActive
                 ? `rgba(${item.rgb},0.1)`
-                : hovered
-                  ? 'rgba(255,255,255,0.09)'
-                  : 'transparent',
+                : hovered ? 'rgba(255,255,255,0.09)' : 'transparent',
               border: `1px solid ${isActive ? `rgba(${item.rgb},0.25)` : 'transparent'}`,
               boxShadow: isActive ? `0 0 20px rgba(${item.rgb},0.08)` : 'none',
             }}
@@ -149,10 +152,7 @@ const NavItem = ({ item, index }) => {
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.25 }}
                   className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] rounded-full"
-                  style={{
-                    background: item.accent,
-                    boxShadow: `0 0 8px ${item.accent}`,
-                  }}
+                  style={{ background: item.accent, boxShadow: `0 0 8px ${item.accent}` }}
                 />
               )}
             </AnimatePresence>
@@ -163,9 +163,7 @@ const NavItem = ({ item, index }) => {
               style={{
                 background: isActive
                   ? `rgba(${item.rgb},0.15)`
-                  : hovered
-                    ? `rgba(${item.rgb},0.07)`
-                    : 'rgba(255,255,255,0.09)',
+                  : hovered ? `rgba(${item.rgb},0.07)` : 'rgba(255,255,255,0.09)',
                 border: `1px solid ${isActive ? `rgba(${item.rgb},0.3)` : hovered ? `rgba(${item.rgb},0.15)` : 'rgba(255,255,255,0.10)'}`,
               }}
             >
@@ -197,12 +195,7 @@ const NavItem = ({ item, index }) => {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 className="ml-auto shrink-0 rounded-full"
-                style={{
-                  width: 4,
-                  height: 4,
-                  background: item.accent,
-                  boxShadow: `0 0 6px ${item.accent}`,
-                }}
+                style={{ width: 4, height: 4, background: item.accent, boxShadow: `0 0 6px ${item.accent}` }}
               />
             )}
           </div>
@@ -212,11 +205,172 @@ const NavItem = ({ item, index }) => {
   );
 };
 
+/* ─────────────────────────────────────────
+   PROFILE NAV ITEM — matches NavItem style
+───────────────────────────────────────── */
+const ProfileNavItem = ({ user }) => {
+  const [hovered, setHovered] = useState(false);
+  const accent = '#a855f7';
+  const rgb = '168,85,247';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -16 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.5, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <NavLink
+        to="/profile"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        {({ isActive }) => (
+          <div
+            className="relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 overflow-hidden"
+            style={{
+              background: isActive
+                ? `rgba(${rgb},0.1)`
+                : hovered ? 'rgba(255,255,255,0.09)' : 'transparent',
+              border: `1px solid ${isActive ? `rgba(${rgb},0.25)` : 'transparent'}`,
+              boxShadow: isActive ? `0 0 20px rgba(${rgb},0.08)` : 'none',
+            }}
+          >
+            {/* active left bar */}
+            <AnimatePresence>
+              {isActive && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: '60%', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] rounded-full"
+                  style={{ background: accent, boxShadow: `0 0 8px ${accent}` }}
+                />
+              )}
+            </AnimatePresence>
+
+            {/* avatar — pulsing glow when active */}
+            <motion.div
+              animate={isActive ? {
+                boxShadow: [
+                  `0 0 6px rgba(${rgb},0.4)`,
+                  `0 0 14px rgba(${rgb},0.8)`,
+                  `0 0 6px rgba(${rgb},0.4)`,
+                ],
+              } : {}}
+              transition={{ duration: 2.5, repeat: Infinity }}
+              className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-display font-black transition-all duration-200"
+              style={{
+                background: isActive
+                  ? `rgba(${rgb},0.2)`
+                  : hovered ? `rgba(${rgb},0.1)` : 'rgba(255,255,255,0.09)',
+                border: `1px solid ${isActive ? `rgba(${rgb},0.4)` : hovered ? `rgba(${rgb},0.2)` : 'rgba(255,255,255,0.10)'}`,
+                fontSize: 11,
+                color: isActive ? accent : hovered ? accent : '#8eb4d4',
+              }}
+            >
+              {user?.avatar || user?.name?.slice(0, 2).toUpperCase() || 'OP'}
+            </motion.div>
+
+            {/* name + role stacked */}
+            <div className="flex-1 min-w-0">
+              <div
+                className="font-mono font-bold truncate transition-all duration-200"
+                style={{
+                  fontSize: 13,
+                  color: isActive ? accent : hovered ? '#a8bdd4' : '#8eb4d4',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                {user?.name || 'Operator'}
+              </div>
+              <div
+                className="font-mono truncate"
+                style={{ fontSize: 10, color: '#4a6a8a', marginTop: 1 }}
+              >
+                {user?.role || 'Analyst'} · {user?.clearanceLevel || 'LEVEL-1'}
+              </div>
+            </div>
+
+            {/* active dot */}
+            {isActive && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="ml-auto shrink-0 rounded-full"
+                style={{ width: 4, height: 4, background: accent, boxShadow: `0 0 6px ${accent}` }}
+              />
+            )}
+          </div>
+        )}
+      </NavLink>
+    </motion.div>
+  );
+};
+
+/* ─────────────────────────────────────────
+   LOGOUT BUTTON — mirrors NavItem hover style
+───────────────────────────────────────── */
+const LogoutButton = ({ onLogout }) => {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -16 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.56, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <motion.button
+        onClick={onLogout}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        whileTap={{ scale: 0.97 }}
+        className="w-full relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 overflow-hidden"
+        style={{
+          background: hovered ? 'rgba(255,0,60,0.08)' : 'transparent',
+          border: `1px solid ${hovered ? 'rgba(255,0,60,0.2)' : 'transparent'}`,
+          boxShadow: hovered ? '0 0 20px rgba(255,0,60,0.06)' : 'none',
+        }}
+      >
+        {/* icon container */}
+        <div
+          className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
+          style={{
+            background: hovered ? 'rgba(255,0,60,0.12)' : 'rgba(255,255,255,0.06)',
+            border: `1px solid ${hovered ? 'rgba(255,0,60,0.25)' : 'rgba(255,255,255,0.08)'}`,
+          }}
+        >
+          <LogOut
+            size={13}
+            style={{
+              color: hovered ? '#ff003c' : '#4a6a8a',
+              filter: hovered ? 'drop-shadow(0 0 4px #ff003c)' : 'none',
+              transition: 'all 0.2s',
+            }}
+          />
+        </div>
+
+        <span
+          className="font-mono font-bold tracking-wide transition-all duration-200"
+          style={{
+            fontSize: 13,
+            color: hovered ? '#ff003c' : '#4a6a8a',
+            letterSpacing: '0.05em',
+          }}
+        >
+          Terminate Session
+        </span>
+      </motion.button>
+    </motion.div>
+  );
+};
+
 /* ══════════════════════════════════════════
    SIDEBAR
 ══════════════════════════════════════════ */
 const Sidebar = () => {
-  const location = useLocation();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   /* live clock */
   const [time, setTime] = useState(new Date());
@@ -224,6 +378,8 @@ const Sidebar = () => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  const handleLogout = () => { logout(); navigate('/login'); };
 
   return (
     <motion.div
@@ -250,7 +406,6 @@ const Sidebar = () => {
           className="flex items-center gap-3 px-5 py-5"
           style={{ borderBottom: '1px solid rgba(0,243,255,0.07)' }}
         >
-          {/* shield icon */}
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
             style={{
@@ -297,6 +452,26 @@ const Sidebar = () => {
             <NavItem key={item.path} item={item} index={index} />
           ))}
         </nav>
+
+        {/* ── OPERATOR SECTION ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.48, duration: 0.4 }}
+          className="px-3 pt-3 pb-1"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          {/* section label — mirrors Navigation label */}
+          <div className="flex items-center gap-2 px-1 mb-1.5">
+            <div style={{ width: 16, height: 1, background: 'rgba(168,85,247,0.35)' }} />
+            <span className="font-mono uppercase tracking-[0.2em]" style={{ fontSize: 12, color: '#94a3b8' }}>
+              Operator
+            </span>
+          </div>
+
+          {user && <ProfileNavItem user={user} />}
+          <LogoutButton onLogout={handleLogout} />
+        </motion.div>
 
         {/* ── SYSTEM STATUS CARD ── */}
         <motion.div
@@ -367,6 +542,7 @@ const Sidebar = () => {
             CyberShield AI
           </span>
         </div>
+
       </div>
     </motion.div>
   );

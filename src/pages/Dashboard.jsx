@@ -5,7 +5,10 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
-const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
+const BACKEND_URL = 'http://127.0.0.1:5000';
+
+// Initialize socket globally so it doesn't disconnect on unmount
+const socket = io(BACKEND_URL);
 
 const getRelativeTime = (dateString) => {
   const date = new Date(dateString + (dateString.includes('Z') ? '' : 'Z'));
@@ -217,7 +220,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{ background: 'rgba(5,10,20,0.95)', border: '1px solid rgba(0,243,255,0.25)', borderRadius: 8, padding: '8px 14px' }}>
-      <p style={{ fontFamily: 'monospace', fontSize: 13, color: '#64748b', marginBottom: 3 }}>{label}</p>
+      <p style={{ fontFamily: 'monospace', fontSize: 13, color: '#a8bdd4', marginBottom: 3 }}>{label}</p>
       <p style={{ fontFamily: 'monospace', fontSize: 15, color: '#00f3ff', fontWeight: 700 }}>{payload[0].value} threats</p>
     </div>
   );
@@ -246,7 +249,7 @@ const MetricCard = ({ title, value, subtitle, color, icon: Icon, delay, index })
         border: `1px solid rgba(${p.rgb},0.18)`,
         borderRadius: 16,
         padding: '20px 22px 18px',
-        boxShadow: `0 0 30px rgba(${p.rgb},0.07), inset 0 1px 0 rgba(255,255,255,0.04)`,
+        boxShadow: `0 0 30px rgba(${p.rgb},0.07), inset 0 1px 0 rgba(255,255,255,0.10)`,
         backdropFilter: 'blur(12px)',
       }}
     >
@@ -289,7 +292,7 @@ const MetricCard = ({ title, value, subtitle, color, icon: Icon, delay, index })
       </div>
 
       {/* subtitle */}
-      <div className="font-mono" style={{ fontSize: 13, color: '#64748b' }}>{subtitle}</div>
+      <div className="font-mono" style={{ fontSize: 13, color: '#a8bdd4' }}>{subtitle}</div>
 
       {/* animated bottom line */}
       <div
@@ -338,7 +341,7 @@ const FeedItem = ({ type, text, time, index }) => {
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-mono truncate" style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.5 }}>{text}</p>
-        <p className="font-mono" style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>{time}</p>
+        <p className="font-mono" style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{time}</p>
       </div>
     </motion.div>
   );
@@ -381,7 +384,6 @@ const Dashboard = () => {
     const interval = setInterval(fetchData, 10000);
     const timeInterval = setInterval(() => setCurrentTime(Date.now()), 1000);
 
-    const socket = io(BACKEND_URL, { transports: ["websocket"] });
     socket.on('new_activity', (newActivity) => {
       setActivityFeed(prev => [newActivity, ...prev].slice(0, 15));
     });
@@ -389,7 +391,7 @@ const Dashboard = () => {
     return () => {
       clearInterval(interval);
       clearInterval(timeInterval);
-      socket.disconnect();
+      socket.off('new_activity');
     };
   }, []);
 
@@ -441,7 +443,7 @@ const Dashboard = () => {
                 MATRIX
               </span>
             </h1>
-            <p className="font-mono mt-2" style={{ fontSize: 13, color: '#475569', letterSpacing: '0.12em' }}>
+            <p className="font-mono mt-2" style={{ fontSize: 13, color: '#94a3b8', letterSpacing: '0.12em' }}>
               UPLINK ESTABLISHED · NODE ALPHA-7 · LATENCY 12ms
             </p>
           </div>
@@ -485,7 +487,7 @@ const Dashboard = () => {
               background: 'rgba(5,9,18,0.85)',
               border: '1px solid rgba(0,243,255,0.1)',
               backdropFilter: 'blur(16px)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 40px rgba(0,0,0,0.4)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 0 40px rgba(0,0,0,0.4)',
             }}
           >
             {/* panel header bar */}
@@ -500,7 +502,7 @@ const Dashboard = () => {
                     <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: c, opacity: 0.7 }} />
                   ))}
                 </div>
-                <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.06)' }} />
+                <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.13)' }} />
                 <div className="flex items-center gap-2">
                   <Activity size={13} style={{ color: '#00f3ff' }} />
                   <span className="font-mono font-bold" style={{ fontSize: 14, color: '#cbd5e1', letterSpacing: '0.08em' }}>
@@ -509,7 +511,7 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <span className="font-mono" style={{ fontSize: 12, color: '#475569', letterSpacing: '0.1em' }}>LAST 7H</span>
+                <span className="font-mono" style={{ fontSize: 12, color: '#94a3b8', letterSpacing: '0.1em' }}>LAST 7H</span>
                 <div
                   className="px-2 py-0.5 rounded"
                   style={{ background: 'rgba(0,243,255,0.06)', border: '1px solid rgba(0,243,255,0.15)' }}
@@ -534,11 +536,11 @@ const Dashboard = () => {
                   <XAxis
                     dataKey="time"
                     stroke="transparent"
-                    tick={{ fill: '#475569', fontSize: 12, fontFamily: 'monospace' }}
+                    tick={{ fill: '#94a3b8', fontSize: 12, fontFamily: 'monospace' }}
                   />
                   <YAxis
                     stroke="transparent"
-                    tick={{ fill: '#475569', fontSize: 12, fontFamily: 'monospace' }}
+                    tick={{ fill: '#94a3b8', fontSize: 12, fontFamily: 'monospace' }}
                     allowDecimals={false}
                   />
                   <Tooltip content={<CustomTooltip />} />
@@ -568,7 +570,7 @@ const Dashboard = () => {
               ].map(({ label, val }) => (
                 <div key={label} className="flex flex-col items-center py-3 px-4" style={{ borderColor: 'rgba(0,243,255,0.07)' }}>
                   <span className="font-mono font-bold" style={{ fontSize: 16, color: '#00f3ff' }}>{val}</span>
-                  <span className="font-mono uppercase tracking-widest" style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>{label}</span>
+                  <span className="font-mono uppercase tracking-widest" style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{label}</span>
                 </div>
               ))}
             </div>
@@ -582,15 +584,15 @@ const Dashboard = () => {
             className="flex flex-col rounded-2xl overflow-hidden"
             style={{
               background: 'rgba(5,9,18,0.85)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.13)',
               backdropFilter: 'blur(16px)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10)',
             }}
           >
             {/* feed header */}
             <div
               className="flex items-center justify-between px-5 py-4 shrink-0"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.10)' }}
             >
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
@@ -599,7 +601,7 @@ const Dashboard = () => {
                     Live Activity
                   </span>
                 </div>
-                <span className="font-mono" style={{ fontSize: 11, color: '#475569', letterSpacing: '0.1em' }}>
+                <span className="font-mono" style={{ fontSize: 11, color: '#94a3b8', letterSpacing: '0.1em' }}>
                   EVENT STREAM
                 </span>
               </div>
@@ -619,7 +621,7 @@ const Dashboard = () => {
                   <div style={{ width: 24, height: 24, border: '1px solid rgba(0,243,255,0.15)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Cpu size={12} style={{ color: 'rgba(0,243,255,0.3)' }} />
                   </div>
-                  <span className="font-mono" style={{ fontSize: 12, color: '#334155', letterSpacing: '0.1em' }}>AWAITING EVENTS</span>
+                  <span className="font-mono" style={{ fontSize: 12, color: '#8eb4d4', letterSpacing: '0.1em' }}>AWAITING EVENTS</span>
                 </div>
               ) : (
                 activityFeed.map((item, idx) => (
@@ -637,12 +639,12 @@ const Dashboard = () => {
             {/* feed footer */}
             <div
               className="px-5 py-3 shrink-0 flex items-center justify-between"
-              style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+              style={{ borderTop: '1px solid rgba(255,255,255,0.10)' }}
             >
-              <span className="font-mono" style={{ fontSize: 11, color: '#334155', letterSpacing: '0.1em' }}>
+              <span className="font-mono" style={{ fontSize: 11, color: '#8eb4d4', letterSpacing: '0.1em' }}>
                 {activityFeed.length} EVENTS
               </span>
-              <span className="font-mono" style={{ fontSize: 11, color: '#334155', letterSpacing: '0.1em' }}>
+              <span className="font-mono" style={{ fontSize: 11, color: '#8eb4d4', letterSpacing: '0.1em' }}>
                 REFRESH 10s
               </span>
             </div>
@@ -655,9 +657,9 @@ const Dashboard = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.55 }}
           className="flex items-center justify-between"
-          style={{ paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.04)' }}
+          style={{ paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.10)' }}
         >
-          <span className="font-mono uppercase tracking-[0.2em]" style={{ fontSize: 11, color: '#334155' }}>
+          <span className="font-mono uppercase tracking-[0.2em]" style={{ fontSize: 11, color: '#8eb4d4' }}>
             CyberShield AI · Built for the Digital Battlefield
           </span>
           <div className="flex items-center gap-4">
@@ -668,7 +670,7 @@ const Dashboard = () => {
             ].map(({ label, active }) => (
               <div key={label} className="flex items-center gap-1.5">
                 <span style={{ width: 4, height: 4, borderRadius: '50%', background: active ? '#39ff14' : '#ff003c', display: 'block' }} />
-                <span className="font-mono" style={{ fontSize: 11, color: '#334155', letterSpacing: '0.12em' }}>{label}</span>
+                <span className="font-mono" style={{ fontSize: 11, color: '#8eb4d4', letterSpacing: '0.12em' }}>{label}</span>
               </div>
             ))}
           </div>

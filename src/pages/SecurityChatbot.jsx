@@ -2,10 +2,11 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Paperclip, Send, Trash2, Download, Zap } from 'lucide-react';
+import axios from 'axios';
 
 /* ── ALL ORIGINAL CONSTANTS (unchanged) ── */
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
-const CHAT_API_URL = `${API_BASE_URL}/api/chat`;
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
 const SYSTEM_PROMPT = `You are NEXUS, an elite AI security copilot embedded in CyberShield — 
 an advanced cybersecurity operations platform. You specialize in:
@@ -293,6 +294,67 @@ const SecurityChatbot = () => {
   const endOfMessagesRef = useRef(null);
   const abortControllerRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const [documents, setDocuments] = useState([
+    { name: 'ISO_27001_Compliance.pdf', size: '2.4MB', content: 'ISO/IEC 27001 standard details compliance guidelines, security checkmarks, risks, policies, threat assets protection, and risk assessment procedures.' },
+    { name: 'Incident_Response_Playbook.md', size: '45KB', content: 'Incident Response steps: 1. Identification: Detect and log anomalous behavior. 2. Containment: Isolate target systems. 3. Eradication: Purge malware signatures. 4. Recovery: Restore backup images. 5. Lessons Learned: Update threat intelligence databases.' },
+    { name: 'Firewall_Ruleset_v3.json', size: '12KB', content: 'Firewall configurations: Block port 22 except from bastion IP, allow HTTP (80) and HTTPS (443), log rejected packets, rate limit SSH requests.' },
+    { name: 'ZeroTrust_Architecture.docx', size: '1.1MB', content: 'Zero Trust architecture requirements: Authenticate and authorize every access request, assume breach, verify explicitly, use least privilege access policies.' }
+  ]);
+  const [uploading, setUploading] = useState(false);
+
+  const handleIngestFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post('http://127.0.0.1:5000/api/upload-copilot-doc', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (response.data.success) {
+        const newDoc = {
+          name: response.data.data.name,
+          size: response.data.data.size,
+          content: response.data.data.content
+        };
+        setDocuments(prev => [...prev, newDoc]);
+        
+        // Add log message to chat history
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: `📥 **DOCUMENT INGESTED INTO KNOWLEDGE BASE**\n\n**Name:** ${newDoc.name}\n**Size:** ${newDoc.size}\n**Characters:** ${response.data.data.characters}\n\n*NEXUS copilot intelligence has indexed the content and added it to active memory.*`,
+            timestamp: new Date()
+          }
+        ]);
+      }
+    } catch (err) {
+      console.error('Ingestion failed:', err);
+      const errMsg = err.response?.data?.error || err.message || 'Server connection error';
+      setError(`Ingestion failed: ${errMsg}`);
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `❌ **INGESTION FAILED: ${errMsg}**\n\nEnsure the backend server is running on port 5000 and that you uploaded a valid document format.`,
+          timestamp: new Date(),
+          isError: true
+        }
+      ]);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -317,13 +379,21 @@ const SecurityChatbot = () => {
         .filter((_, i) => i !== 0)
         .map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
 
-      const response = await fetch(CHAT_API_URL, {
+      const docsContext = documents
+        .map(d => `[DOCUMENT: ${d.name}]\n${d.content.substring(0, 4000)}`)
+        .join('\n\n');
+
+      const customSystemPrompt = docsContext
+        ? `${SYSTEM_PROMPT}\n\nHere are reference documents loaded in your Knowledge Base context:\n${docsContext}`
+        : SYSTEM_PROMPT;
+
+      const response = await fetch(GROQ_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_API_KEY}` },
         signal: abortControllerRef.current.signal,
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...history],
+          messages: [{ role: 'system', content: customSystemPrompt }, ...history],
           max_tokens: 1024,
           temperature: 0.7,
           stream: true,
@@ -367,13 +437,13 @@ const SecurityChatbot = () => {
       setError(err.message);
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: `[ERROR] UPLINK FAILED: ${err.message}\n\nCheck your GROQ_API_KEY in backend .env`, timestamp: new Date(), isError: true },
+        { role: 'assistant', content: `[ERROR] UPLINK FAILED: ${err.message}\n\nCheck your VITE_GROQ_API_KEY in .env`, timestamp: new Date(), isError: true },
       ]);
     } finally {
       setIsStreaming(false);
       setStreamingText('');
     }
-  }, [input, isStreaming, messages]);
+  }, [input, isStreaming, messages, documents]);
 
   /* ── ALL ORIGINAL HANDLERS (unchanged) ── */
   const handleAbort = () => {
@@ -402,7 +472,9 @@ const SecurityChatbot = () => {
   };
 
   return (
-    <div className="relative w-full h-full overflow-hidden" style={{ background: '#03060f', height: '100%' }}>
+   <div className="relative w-full overflow-hidden" style={{ background: '#03060f', height: '100%' }}>
+
+
       <ChatBackground />
 
       {/* vignette */}
@@ -411,15 +483,14 @@ const SecurityChatbot = () => {
         style={{ background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.5) 100%)' }}
       />
 
-      <div className="relative z-10 h-full flex gap-5 p-6">
+      <div className="relative z-10 flex gap-5 p-4" style={{ height: '100%', minHeight: 0 }}>
 
         {/* ── SIDEBAR ── */}
         <motion.div
           initial={{ opacity: 0, x: -16 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          className="hidden md:flex flex-col gap-4 w-64 shrink-0"
-        >
+          className="hidden md:flex flex-col gap-4 w-64 shrink-0 overflow-y-auto"        >
           {/* NEXUS identity card */}
           <div
             className="rounded-2xl p-4"
@@ -527,25 +598,34 @@ const SecurityChatbot = () => {
               <Paperclip size={11} style={{ color: '#00f3ff' }} />
               <span className="font-mono uppercase tracking-widest" style={{ fontSize: 12, color: '#a8bdd4' }}>Knowledge Base</span>
             </div>
-            {[
-              { name: 'ISO_27001_Compliance.pdf', size: '2.4MB' },
-              { name: 'Incident_Response_Playbook.md', size: '45KB' },
-              { name: 'Firewall_Ruleset_v3.json', size: '12KB' },
-              { name: 'ZeroTrust_Architecture.docx', size: '1.1MB' },
-            ].map((d) => <DocItem key={d.name} {...d} />)}
+            <div className="space-y-2 flex-1 overflow-y-auto max-h-[220px] custom-scrollbar pr-1">
+              {documents.map((d) => <DocItem key={d.name} name={d.name} size={d.size} />)}
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.txt,.md,.json,.docx"
+              className="hidden"
+              onChange={handleIngestFile}
+              disabled={uploading}
+            />
 
             <button
-              className="w-full py-2.5 rounded-xl font-mono font-bold uppercase tracking-widest mt-1 transition-all duration-200"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="w-full py-2.5 rounded-xl font-mono font-bold uppercase tracking-widest mt-1 transition-all duration-200 disabled:opacity-50"
               style={{
                 fontSize: 11,
-                background: 'rgba(0,243,255,0.05)',
+                background: uploading ? 'rgba(0,243,255,0.02)' : 'rgba(0,243,255,0.05)',
                 border: '1px solid rgba(0,243,255,0.15)',
                 color: '#00f3ff',
+                cursor: uploading ? 'not-allowed' : 'pointer'
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,243,255,0.1)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,243,255,0.05)'; }}
+              onMouseEnter={e => { if (!uploading) e.currentTarget.style.background = 'rgba(0,243,255,0.1)'; }}
+              onMouseLeave={e => { if (!uploading) e.currentTarget.style.background = 'rgba(0,243,255,0.05)'; }}
             >
-              + Ingest Document
+              {uploading ? 'INGESTING...' : '+ INGEST DOCUMENT'}
             </button>
           </div>
         </motion.div>

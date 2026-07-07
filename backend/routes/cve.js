@@ -4,7 +4,7 @@ import axios from 'axios';
 const router = express.Router();
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_API_KEY = process.env.VITE_GROQ_API_KEY;
 
 router.post('/analyze-cves', async (req, res) => {
   try {
@@ -18,10 +18,8 @@ router.post('/analyze-cves', async (req, res) => {
     const cvePattern = /CVE-\d{4}-\d{4,}/gi;
     const cveIds = cveText.match(cvePattern) || [];
 
-    let cveData = [];
-
-    // Step 2: Fetch real data from NVD database for each CVE
-    for (const cveId of cveIds.slice(0, 5)) {
+    // Step 2: Fetch real data from NVD database for each CVE in parallel
+    const cvePromises = cveIds.map(async (cveId) => {
       try {
         console.log(`Fetching data for ${cveId}...`);
         
@@ -43,23 +41,26 @@ router.post('/analyze-cves', async (req, res) => {
             vuln.metrics?.cvssMetricV2?.[0]?.cvssData?.baseScore || 
             0;
 
-          cveData.push({
+          return {
             id: cveId,
             description: vuln.descriptions?.[0]?.value || 'No description available',
             score: score,
             published: vuln.published || 'Unknown'
-          });
+          };
         }
       } catch (e) {
         console.log(`Could not fetch ${cveId}, adding with no data`);
-        cveData.push({
-          id: cveId,
-          description: 'Could not fetch from NVD database',
-          score: 0,
-          published: 'Unknown'
-        });
       }
-    }
+      
+      return {
+        id: cveId,
+        description: 'Could not fetch from NVD database',
+        score: 0,
+        published: 'Unknown'
+      };
+    });
+
+    let cveData = await Promise.all(cvePromises);
 
     // If user didnt enter CVE IDs, just analyze raw text
     if (cveData.length === 0) {
