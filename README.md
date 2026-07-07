@@ -37,7 +37,7 @@ CyberShield AI is built for the modern digital battlefield, combining advanced l
 - **PDF Ingestion**: Dynamically extracts text contents from security policies using `pdf-parse`.
 - **RAG-Lite Q&A**: Employs context-bounded querying using Groq LLM, forcing the agent to cite document sections or return specific "not covered" warnings.
 
-### 6. 🍯 Deception Honeypot Monitor
+### 6. 🍯 Deception Honeypot Monitor (Demo Module)
 - **Simulation Engine**: Generates real-time deception traffic (SSH Brute Force, SQL Injection, Port Scans, HTTP Traversal).
 - **Socket.IO Event Stream**: Pushes live activity alerts to visual frontend components instantly.
 - **Database Persistence**: Stores logs in Postgres.
@@ -221,6 +221,4 @@ graph TD
 
 ---
 
-## 📜 License
-This software is licensed under the MIT License.
 
